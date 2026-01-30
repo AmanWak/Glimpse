@@ -33,11 +33,15 @@ struct OverlayView: View {
                     .foregroundColor(.white)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 40)
+                    .accessibilityLabel(message)
+                    .accessibilityAddTraits(.isStaticText)
                 
                 // Countdown timer
                 Text("\(countdown)")
                     .font(.system(size: 200, weight: .ultraLight))
                     .foregroundColor(.white)
+                    .accessibilityLabel("\(countdown) seconds remaining")
+                    .accessibilityAddTraits(.updatesFrequently)
                 
                 Spacer()
                 
@@ -48,6 +52,8 @@ struct OverlayView: View {
                         .foregroundColor(.white.opacity(0.7))
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("Skip break")
+                .accessibilityHint("Dismiss this break reminder")
                 .padding(.bottom, 40)
             }
         }

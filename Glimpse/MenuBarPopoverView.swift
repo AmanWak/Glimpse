@@ -21,12 +21,15 @@ struct MenuBarPopoverView: View {
             HStack {
                 Image(systemName: "eye")
                     .font(.title2)
+                    .accessibilityHidden(true)
                 Text("Glimpse")
                     .font(.headline)
                 Spacer()
             }
             .padding(.horizontal)
             .padding(.top, 16)
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("Glimpse menu")
             
             Divider()
             
@@ -67,6 +70,8 @@ struct MenuBarPopoverView: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel(timerManager?.isPaused == true ? "Resume timer" : "Pause timer")
+                .accessibilityHint("Controls the break reminder timer")
                 
                 // Skip to break
                 if timerManager?.isPaused == false && timerManager?.isOnBreak == false {
@@ -79,6 +84,8 @@ struct MenuBarPopoverView: View {
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel("Skip to break now")
+                    .accessibilityHint("Immediately trigger the break reminder")
                 }
                 
                 Divider()

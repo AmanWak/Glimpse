@@ -38,6 +38,8 @@ class TimerManager: ObservableObject {
     func start() {
         guard timer == nil else { return }
         
+        GlimpseLogger.log("Starting timer", log: .timer)
+        
         timeRemaining = Self.workInterval
         isPaused = false
         isOnBreak = false
@@ -50,6 +52,7 @@ class TimerManager: ObservableObject {
     }
     
     func stop() {
+        GlimpseLogger.log("Stopping timer", log: .timer)
         timer?.invalidate()
         timer = nil
     }
@@ -64,6 +67,7 @@ class TimerManager: ObservableObject {
     
     func pause() {
         guard !isPaused else { return }
+        GlimpseLogger.log("Timer paused", log: .timer)
         isPaused = true
         pauseDate = Date()
         delegate?.timerManagerDidUpdate(self)
@@ -71,6 +75,7 @@ class TimerManager: ObservableObject {
     
     func resume() {
         guard isPaused else { return }
+        GlimpseLogger.log("Timer resumed", log: .timer)
         isPaused = false
         pauseDate = nil
         delegate?.timerManagerDidUpdate(self)
@@ -83,8 +88,10 @@ class TimerManager: ObservableObject {
     
     func completeBreak(userSkipped: Bool) {
         if !userSkipped {
+            GlimpseLogger.log("Break completed successfully", log: .timer)
             streakTracker.incrementBreak()
         } else {
+            GlimpseLogger.log("Break skipped by user", log: .timer, type: .info)
             streakTracker.recordSkip()
         }
         
@@ -111,6 +118,7 @@ class TimerManager: ObservableObject {
             
             if timeRemaining <= 0 {
                 // Trigger break
+                GlimpseLogger.log("Work interval complete - triggering break", log: .timer)
                 isOnBreak = true
                 timeRemaining = Self.breakDuration
                 delegate?.timerManagerDidTriggerBreak(self)

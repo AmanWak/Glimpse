@@ -16,6 +16,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var overlayWindowController: OverlayWindowController?
     
     func applicationDidFinishLaunching(_ notification: Notification) {
+        GlimpseLogger.log("Application launching", log: .app)
+        
         // Hide dock icon - menu bar only app
         NSApp.setActivationPolicy(.accessory)
         
@@ -26,11 +28,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         timerManager = TimerManager()
         timerManager?.delegate = self
         
-        // Request notification permissions
+        // Request notification permissions and set up categories
         requestNotificationPermissions()
+        NotificationManager.shared.setupNotificationCategories()
         
         // Start the 20-minute timer
         timerManager?.start()
+        
+        GlimpseLogger.log("Application launched successfully", log: .app)
     }
     
     private func setupMenuBar() {
@@ -93,12 +98,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func requestNotificationPermissions() {
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { granted, error in
             if let error = error {
-                print("Error requesting notification permissions: \(error.localizedDescription)")
+                GlimpseLogger.error("Error requesting notification permissions", log: .notifications, error: error)
+            } else if granted {
+                GlimpseLogger.log("Notification permissions granted", log: .notifications)
+            } else {
+                GlimpseLogger.log("Notification permissions denied", log: .notifications, type: .info)
             }
         }
     }
     
     func applicationWillTerminate(_ notification: Notification) {
+        GlimpseLogger.log("Application terminating", log: .app)
         timerManager?.stop()
     }
 }
@@ -120,6 +130,18 @@ extension AppDelegate: TimerManagerDelegate {
     private func showOverlay() {
         // Close popover if open
         popover?.close()
+        
+        // Check break style preference
+        if SettingsManager.shared.breakStyle == .notification {
+            // Use notification fallback
+            NotificationManager.shared.sendBreakNotification()
+            
+            // Auto-complete break after 20 seconds
+            DispatchQueue.main.asyncAfter(deadline: .now() + 20) { [weak self] in
+                self?.timerManager?.completeBreak(userSkipped: false)
+            }
+            return
+        }
         
         // Create or reuse overlay window controller
         if overlayWindowController == nil {
