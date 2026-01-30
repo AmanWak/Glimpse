@@ -12,10 +12,11 @@ class OverlayWindowController: NSWindowController {
     var onSkip: ((Bool) -> Void)?
     var onComplete: (() -> Void)?
     
-    private var overlayWindow: NSWindow?
+    private var overlayWindows: [NSWindow] = []
     private var timer: Timer?
     private var countdown: Int = 20
-    private var hostingController: NSHostingController<OverlayView>?
+    private var message: String = ""
+    private var hostingControllers: [NSHostingController<OverlayView>] = []
     
     init() {
         super.init(window: nil)
@@ -32,14 +33,14 @@ class OverlayWindowController: NSWindowController {
         // Get all screens for multi-monitor support
         let screens = NSScreen.screens
         
+        // Get a random message for this break
+        message = MessageProvider.randomMessage()
+        
         // Create windows for each screen
         for screen in screens {
             let window = createOverlayWindow(for: screen)
             window.makeKeyAndOrderFront(nil)
-            
-            if overlayWindow == nil {
-                overlayWindow = window
-            }
+            overlayWindows.append(window)
         }
         
         // Start countdown
@@ -51,7 +52,6 @@ class OverlayWindowController: NSWindowController {
     }
     
     private func createOverlayWindow(for screen: NSScreen) -> NSWindow {
-        let message = MessageProvider.randomMessage()
         let overlayView = OverlayView(
             countdown: countdown,
             message: message,
@@ -61,7 +61,7 @@ class OverlayWindowController: NSWindowController {
         )
         
         let controller = NSHostingController(rootView: overlayView)
-        hostingController = controller
+        hostingControllers.append(controller)
         
         let window = NSWindow(contentViewController: controller)
         window.setFrame(screen.frame, display: true)
@@ -91,9 +91,8 @@ class OverlayWindowController: NSWindowController {
     }
     
     private func updateOverlay() {
-        // Update the view with new countdown
-        if let controller = hostingController {
-            let message = (controller.rootView as OverlayView).message
+        // Update all hosting controllers with new countdown
+        for controller in hostingControllers {
             controller.rootView = OverlayView(
                 countdown: countdown,
                 message: message,
@@ -135,12 +134,12 @@ class OverlayWindowController: NSWindowController {
     override func close() {
         timer?.invalidate()
         timer = nil
-        overlayWindow?.close()
-        overlayWindow = nil
         
         // Close all overlay windows
-        for window in NSApp.windows where window.level == .statusBar {
+        for window in overlayWindows {
             window.close()
         }
+        overlayWindows.removeAll()
+        hostingControllers.removeAll()
     }
 }

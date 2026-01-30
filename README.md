@@ -153,7 +153,6 @@ Copyright © 2025 Aman Wakankar. All rights reserved.
 
 Found a bug or have a feature request?
 - Open an issue on [GitHub](https://github.com/AmanWak/Glimpse/issues)
-- Contact: [Your contact info]
 
 ---
 
