@@ -27,11 +27,11 @@ struct GlimpseApp: App {
                 onSkipToBreak: handleSkipToBreak,
                 onQuit: handleQuit
             )
-            .onAppear {
-                initializeIfNeeded()
-            }
         } label: {
             Image(systemName: appState.menuBarIcon)
+                .onAppear {
+                    initializeIfNeeded()
+                }
         }
         .menuBarExtraStyle(.window)
 
@@ -49,7 +49,14 @@ struct GlimpseApp: App {
     private func initializeIfNeeded() {
         guard !isInitialized else { return }
         isInitialized = true
-        startWorkTimer()
+
+        // One-time setup
+        setupTimerCallbacks()
+        setupSleepWakeHandler()
+
+        // Start the first work cycle
+        appState.startWorkPeriod()
+        timerManager.startWorkTimer()
     }
 
     // MARK: - Lifecycle
@@ -76,6 +83,8 @@ struct GlimpseApp: App {
                 wasRunningBeforeSleep = true
                 timerManager.pause()
                 appState.pause()
+            } else {
+                wasRunningBeforeSleep = false
             }
         }
 
@@ -89,14 +98,9 @@ struct GlimpseApp: App {
 
     // MARK: - Timer Control
 
-    private func startWorkTimer() {
-        setupTimerCallbacks()
-        setupSleepWakeHandler()
-        appState.startWorkPeriod()
-        timerManager.startWorkTimer()
-    }
-
     private func startBreak() {
+        guard appState.mode == .working else { return }
+
         appState.startBreak()
 
         // Check if fullscreen app is active or user prefers notifications
@@ -112,7 +116,14 @@ struct GlimpseApp: App {
     }
 
     private func completeBreak() {
+        guard appState.mode == .onBreak else { return }
+
+        // Disconnect overlay FIRST — replaces the SwiftUI view tree with EmptyView,
+        // which cancels all @Observable observations and in-flight animations.
+        // This makes it safe to change state without triggering re-renders on a
+        // view tree that's about to be freed (which causes EXC_BAD_ACCESS).
         hideOverlay()
+
         appState.completeBreak()
         timerManager.startWorkTimer()
 
@@ -122,7 +133,11 @@ struct GlimpseApp: App {
     }
 
     private func skipBreak() {
+        guard appState.mode == .onBreak else { return }
+
+        // Disconnect overlay first, then change state (same pattern).
         hideOverlay()
+
         appState.skipBreak()
         timerManager.startWorkTimer()
     }
@@ -133,24 +148,45 @@ struct GlimpseApp: App {
             remainingTime: appState.secondsRemaining,
             isBreak: appState.mode == .onBreak
         )
+        // Re-show overlay if resuming into a break
+        if appState.mode == .onBreak
+            && appState.breakStyle == .overlay
+            && !overlayManager.isFullscreenAppActive {
+            showOverlay()
+        }
     }
 
     // MARK: - Overlay
 
     private func showOverlay() {
-        let overlayView = OverlayView(
-            appState: appState,
+        overlayManager.onDismiss = { [self] in
+            skipBreak()
+        }
+
+        // Pass snapshot values to OverlayManager — it owns the countdown timer
+        // and updates the view each tick. No Combine timers or @State inside the
+        // overlay view, so nothing can fire into freed memory after teardown.
+        overlayManager.showOverlay(
+            initialSeconds: Int(appState.secondsRemaining),
+            overlayColor: Color(hex: appState.overlayColorHex),
+            overlayOpacity: appState.overlayOpacity,
+            message: appState.currentMessage,
+            requireSkipConfirmation: appState.skipConfirmation && appState.streak.consecutiveSkips >= 2,
             onSkip: { [self] in
-                skipBreak()
+                // Defer to next run loop cycle so the SwiftUI button event finishes
+                // before we tear down the NSWindow that hosts it (prevents EXC_BAD_ACCESS)
+                DispatchQueue.main.async {
+                    skipBreak()
+                }
             }
         )
-        overlayManager.showOverlay(content: overlayView)
         appState.isOverlayShowing = true
     }
 
     private func hideOverlay() {
-        overlayManager.hideOverlay()
-        appState.isOverlayShowing = false
+        overlayManager.onDismiss = nil
+        appState.isOverlayShowing = false   // state change FIRST
+        overlayManager.hideOverlay()        // teardown LAST
     }
 
     // MARK: - Menu Bar Actions
@@ -171,6 +207,7 @@ struct GlimpseApp: App {
 
     private func handleQuit() {
         appState.saveState()
+        NotificationManager.shared.clearNotifications()
         NSApplication.shared.terminate(nil)
     }
 }

@@ -70,11 +70,13 @@ final class TimerManager {
     // MARK: - Private
 
     private func startTimer() {
-        timer = Timer.scheduledTimer(withTimeInterval: Constants.timerTickInterval, repeats: true) { [weak self] _ in
+        // Create timer without auto-scheduling, then add only to .common mode
+        // (.common includes .default + .eventTracking, so it fires even during menus)
+        let newTimer = Timer(timeInterval: Constants.timerTickInterval, repeats: true) { [weak self] _ in
             self?.tick()
         }
-        // Ensure timer fires even when menu is open
-        RunLoop.current.add(timer!, forMode: .common)
+        RunLoop.current.add(newTimer, forMode: .common)
+        timer = newTimer
     }
 
     private func stopTimer() {

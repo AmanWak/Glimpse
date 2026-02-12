@@ -65,6 +65,9 @@ final class AppState {
     /// Current app mode
     var mode: AppMode = .working
 
+    /// Mode before pausing (for correct resume)
+    private var modeBeforePause: AppMode = .working
+
     /// Seconds remaining in current timer
     var secondsRemaining: TimeInterval = Constants.workDuration
 
@@ -152,12 +155,13 @@ final class AppState {
 
     /// Pause the timer
     func pause() {
+        modeBeforePause = mode
         mode = .paused
     }
 
-    /// Resume from pause
+    /// Resume from pause, restoring the correct mode
     func resume() {
-        mode = .working
+        mode = modeBeforePause
     }
 
     /// Save current state
