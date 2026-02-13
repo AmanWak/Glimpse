@@ -51,6 +51,9 @@ fastlane/test_output
 *credentials*
 *secrets*
 
+# Claude Code
+.claude/
+
 # IDE
 .idea/
 *.swp
