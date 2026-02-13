@@ -42,13 +42,17 @@ struct GlimpseApp: App {
     }
 
     init() {
-        // Request notification permission
-        NotificationManager.shared.requestPermission()
+        // Set up notification delegate so notifications show while app is active
+        NotificationManager.shared.setupDelegate()
     }
 
     private func initializeIfNeeded() {
         guard !isInitialized else { return }
         isInitialized = true
+        DebugLog.log("GlimpseApp: first-time setup")
+
+        // Request notification permission (must happen after app is running)
+        NotificationManager.shared.requestPermission()
 
         // One-time setup
         setupTimerCallbacks()
@@ -67,11 +71,17 @@ struct GlimpseApp: App {
         }
 
         timerManager.onWorkComplete = { [self] in
-            startBreak()
+            DebugLog.log("GlimpseApp: onWorkComplete — deferring startBreak()")
+            DispatchQueue.main.async {
+                startBreak()
+            }
         }
 
         timerManager.onBreakComplete = { [self] in
-            completeBreak()
+            DebugLog.log("GlimpseApp: onBreakComplete — deferring completeBreak()")
+            DispatchQueue.main.async {
+                completeBreak()
+            }
         }
     }
 
@@ -79,6 +89,7 @@ struct GlimpseApp: App {
         sleepWakeHandler = SleepWakeHandler()
 
         sleepWakeHandler?.onSleep = { [self] in
+            DebugLog.log("GlimpseApp: onSleep — mode=\(appState.mode)")
             if appState.mode != .paused {
                 wasRunningBeforeSleep = true
                 timerManager.pause()
@@ -89,6 +100,7 @@ struct GlimpseApp: App {
         }
 
         sleepWakeHandler?.onWake = { [self] in
+            DebugLog.log("GlimpseApp: onWake — wasRunningBeforeSleep=\(wasRunningBeforeSleep)")
             if wasRunningBeforeSleep {
                 wasRunningBeforeSleep = false
                 resumeTimer()
@@ -100,6 +112,7 @@ struct GlimpseApp: App {
 
     private func startBreak() {
         guard appState.mode == .working else { return }
+        DebugLog.log("GlimpseApp.startBreak() — breakStyle=\(appState.breakStyle)")
 
         appState.startBreak()
 
@@ -117,13 +130,9 @@ struct GlimpseApp: App {
 
     private func completeBreak() {
         guard appState.mode == .onBreak else { return }
+        DebugLog.log("GlimpseApp.completeBreak()")
 
-        // Disconnect overlay FIRST — replaces the SwiftUI view tree with EmptyView,
-        // which cancels all @Observable observations and in-flight animations.
-        // This makes it safe to change state without triggering re-renders on a
-        // view tree that's about to be freed (which causes EXC_BAD_ACCESS).
         hideOverlay()
-
         appState.completeBreak()
         timerManager.startWorkTimer()
 
@@ -134,10 +143,9 @@ struct GlimpseApp: App {
 
     private func skipBreak() {
         guard appState.mode == .onBreak else { return }
+        DebugLog.log("GlimpseApp.skipBreak()")
 
-        // Disconnect overlay first, then change state (same pattern).
         hideOverlay()
-
         appState.skipBreak()
         timerManager.startWorkTimer()
     }
@@ -163,9 +171,7 @@ struct GlimpseApp: App {
             skipBreak()
         }
 
-        // Pass snapshot values to OverlayManager — it owns the countdown timer
-        // and updates the view each tick. No Combine timers or @State inside the
-        // overlay view, so nothing can fire into freed memory after teardown.
+        // Pass snapshot values to OverlayManager
         overlayManager.showOverlay(
             initialSeconds: Int(appState.secondsRemaining),
             overlayColor: Color(hex: appState.overlayColorHex),
@@ -173,11 +179,7 @@ struct GlimpseApp: App {
             message: appState.currentMessage,
             requireSkipConfirmation: appState.skipConfirmation && appState.streak.consecutiveSkips >= 2,
             onSkip: { [self] in
-                // Defer to next run loop cycle so the SwiftUI button event finishes
-                // before we tear down the NSWindow that hosts it (prevents EXC_BAD_ACCESS)
-                DispatchQueue.main.async {
-                    skipBreak()
-                }
+                skipBreak()
             }
         )
         appState.isOverlayShowing = true
@@ -185,8 +187,8 @@ struct GlimpseApp: App {
 
     private func hideOverlay() {
         overlayManager.onDismiss = nil
-        appState.isOverlayShowing = false   // state change FIRST
-        overlayManager.hideOverlay()        // teardown LAST
+        overlayManager.hideOverlay()
+        appState.isOverlayShowing = false
     }
 
     // MARK: - Menu Bar Actions

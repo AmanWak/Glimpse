@@ -4,9 +4,10 @@
 //
 //  Full-screen break overlay with blur, timer, message, and skip button.
 //  Completely stateless: receives all values as plain properties, owns no
-//  timers or @State for countdown. OverlayManager drives the countdown by
-//  updating rootView each tick, and invalidates the timer before teardown —
-//  making dangling-timer crashes structurally impossible.
+//  timers or @State. OverlayManager drives the countdown and skip-confirmation
+//  state by updating rootView each tick, and invalidates the timer before
+//  teardown — making dangling-timer and dangling-animation crashes
+//  structurally impossible.
 //
 
 import SwiftUI
@@ -16,8 +17,9 @@ struct OverlayView: View {
     let overlayColor: Color
     let overlayOpacity: Double
     let message: String
-    let requireSkipConfirmation: Bool
+    let showingSkipConfirmation: Bool
     let onSkip: () -> Void
+    let onCancelSkip: () -> Void
 
     var body: some View {
         ZStack {
@@ -38,7 +40,11 @@ struct OverlayView: View {
 
                 Spacer()
 
-                SkipButton(requireConfirmation: requireSkipConfirmation, onSkip: onSkip)
+                SkipButton(
+                    showingConfirmation: showingSkipConfirmation,
+                    onSkip: onSkip,
+                    onCancelSkip: onCancelSkip
+                )
 
                 Spacer()
                     .frame(height: 60)
@@ -54,7 +60,8 @@ struct OverlayView: View {
         overlayColor: .blue,
         overlayOpacity: 0.8,
         message: "Look at something 20 feet away.",
-        requireSkipConfirmation: false,
-        onSkip: {}
+        showingSkipConfirmation: false,
+        onSkip: {},
+        onCancelSkip: {}
     )
 }

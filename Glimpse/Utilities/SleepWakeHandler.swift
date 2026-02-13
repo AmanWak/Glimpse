@@ -19,6 +19,7 @@ final class SleepWakeHandler {
     private var wakeObserver: NSObjectProtocol?
 
     init() {
+        DebugLog.log("SleepWakeHandler.init()")
         setupObservers()
     }
 
@@ -30,6 +31,7 @@ final class SleepWakeHandler {
             object: nil,
             queue: .main
         ) { [weak self] _ in
+            DebugLog.log("SleepWakeHandler: system will sleep")
             self?.onSleep?()
         }
 
@@ -38,11 +40,13 @@ final class SleepWakeHandler {
             object: nil,
             queue: .main
         ) { [weak self] _ in
+            DebugLog.log("SleepWakeHandler: system did wake")
             self?.onWake?()
         }
     }
 
     deinit {
+        DebugLog.log("SleepWakeHandler.deinit")
         if let observer = sleepObserver {
             NSWorkspace.shared.notificationCenter.removeObserver(observer)
         }
