@@ -54,6 +54,7 @@ Glimpse/
 ├── Utilities/
 │   ├── Constants.swift           # Timing values, UserDefaults keys
 │   ├── Color+Hex.swift           # Color <-> hex string extension
+│   ├── DebugLog.swift            # Debug logging (toggle via DebugLog.enabled)
 │   └── SleepWakeHandler.swift    # System sleep/wake observer
 GlimpseTests/
 ├── AppStateTests.swift           # 16 tests
@@ -77,18 +78,20 @@ GlimpseTests/
 The overlay uses a **snapshot pattern** to prevent EXC_BAD_ACCESS crashes:
 
 - `OverlayView` receives only **primitive values** (`Int`, `Color`, `Double`, `String`, `Bool`) at creation — never `AppState`.
-- It manages its own countdown with `@State` + `Timer.publish`.
+- `OverlayManager` owns the countdown via a Foundation `Timer` and rebuilds the view each tick with updated values.
 - Zero `@Observable` observation registrations = zero zombie callback crashes on NSWindow teardown.
 
 **Do NOT pass `AppState` or any `@Observable` object into views hosted in `NSHostingView`.** This is a hard rule.
 
 ### NSHostingView Teardown Order
 
-When dismissing overlay windows, follow this exact sequence synchronously:
-1. Replace rootView with `EmptyView()`
-2. Set `contentView = nil`
-3. `orderOut(nil)` then `close()`
-4. Mutate `@Observable` state AFTER teardown
+When dismissing overlay windows, follow this exact sequence:
+1. Invalidate all timers and monitors
+2. Replace rootView with `AnyView(EmptyView())` (breaks closure retain paths)
+3. `orderOut(nil)` (hides window immediately)
+4. Drop all window references — let ARC handle deallocation
+
+**NEVER call `contentView = nil` or `window.close()`.** These trigger a deferred AppKit/SwiftUI rendering pass that deadlocks the main thread when `NSVisualEffectView` is in the view hierarchy.
 
 ### Other AppKit Rules
 
@@ -96,6 +99,8 @@ When dismissing overlay windows, follow this exact sequence synchronously:
 - `.alert()` does NOT work on borderless `NSWindow` — use inline SwiftUI UI
 - Avoid `.animation()` and `.contentTransition()` inside NSHostingView overlays
 - Skip button defers `skipBreak()` via `DispatchQueue.main.async` to avoid closing NSWindow from within its own button action
+- Defer all timer completion callbacks (`onWorkComplete`, `onBreakComplete`) via `DispatchQueue.main.async`
+- Dismiss MenuBarExtra popover before showing overlay: check `NSApp.keyWindow is NSPanel`
 
 ## Code Style
 

@@ -3,9 +3,15 @@
 //  Glimpse
 //
 //  Creates and manages full-screen overlay windows on all displays.
-//  Owns the countdown timer and updates the overlay view each tick.
-//  The timer is invalidated BEFORE window teardown, ensuring no
-//  callbacks can fire into freed SwiftUI state.
+//  Owns the countdown timer AND skip-confirmation state. Updates the
+//  overlay view each tick with a fresh snapshot.
+//
+//  IMPORTANT: Window teardown must NOT call contentView=nil or close().
+//  These trigger a deferred AppKit/SwiftUI rendering pass that deadlocks
+//  the main thread when NSVisualEffectView is in the view hierarchy.
+//  Instead, replace rootView with EmptyView (to break closure retain
+//  paths), orderOut the window, and drop all references so ARC handles
+//  deallocation naturally.
 //
 
 import AppKit
@@ -23,6 +29,7 @@ final class OverlayManager {
     private var overlayOpacity: Double = 0.85
     private var message: String = ""
     private var requireSkipConfirmation: Bool = false
+    private var showingSkipConfirmation: Bool = false
     private var skipAction: (() -> Void)?
 
     /// Called when overlay is dismissed via safety timeout or Escape key
@@ -60,9 +67,10 @@ final class OverlayManager {
         return false
     }
 
-    /// Show overlay on all screens with the given snapshot values
+    /// Show overlay on all screens with the given snapshot values.
     func showOverlay(initialSeconds: Int, overlayColor: Color, overlayOpacity: Double,
                      message: String, requireSkipConfirmation: Bool, onSkip: @escaping () -> Void) {
+        DebugLog.log("OverlayManager.showOverlay() — initialSeconds=\(initialSeconds), screens=\(NSScreen.screens.count)")
         hideOverlay()
 
         // Store snapshot values
@@ -71,7 +79,13 @@ final class OverlayManager {
         self.overlayOpacity = overlayOpacity
         self.message = message
         self.requireSkipConfirmation = requireSkipConfirmation
+        self.showingSkipConfirmation = false
         self.skipAction = onSkip
+
+        // Dismiss any open menu bar popover before showing overlay
+        if let keyWindow = NSApp.keyWindow, keyWindow is NSPanel {
+            keyWindow.orderOut(nil)
+        }
 
         // Create windows with initial view
         for screen in NSScreen.screens {
@@ -83,39 +97,34 @@ final class OverlayManager {
         startCountdownTimer()
         startSafetyTimer()
         startEscapeMonitor()
+        DebugLog.log("OverlayManager.showOverlay() — \(overlayWindows.count) windows showing")
     }
 
-    /// Hide all overlay windows — fully synchronous to prevent zombie window period.
-    /// Countdown timer is invalidated FIRST so no tick callbacks can fire during
-    /// or after teardown. Any @Observable state mutations after this returns are
-    /// safe because both the timer and NSHostingViews are already destroyed.
+    /// Hide all overlay windows.
     func hideOverlay() {
-        // 1. Stop ALL timers FIRST — no more callbacks can fire
+        guard !overlayWindows.isEmpty || countdownTimer != nil || safetyTimer != nil else { return }
+        DebugLog.log("OverlayManager.hideOverlay() — windowCount=\(overlayWindows.count)")
+
+        // 1. Stop ALL timers and monitors — no more callbacks can fire
         countdownTimer?.invalidate()
         countdownTimer = nil
         stopSafetyTimer()
         stopEscapeMonitor()
 
-        // 2. Clear closure references to break retain cycles
+        // 2. Clear closure references
         skipAction = nil
+        showingSkipConfirmation = false
 
-        guard !overlayWindows.isEmpty else { return }
-
-        // 3. Tear down windows
-        let windows = overlayWindows
-        overlayWindows.removeAll()
-
-        for window in windows {
-            // Replace SwiftUI tree to cancel any internal subscriptions
+        // 3. Disconnect SwiftUI views, hide windows, and release references.
+        //    Do NOT call contentView=nil or close() — these trigger a deferred
+        //    AppKit/SwiftUI teardown that deadlocks the main thread.
+        for window in overlayWindows {
             if let hostingView = window.contentView as? NSHostingView<AnyView> {
                 hostingView.rootView = AnyView(EmptyView())
             }
-            // Destroy hosting view immediately
-            window.contentView = nil
-            // Remove from screen and close
             window.orderOut(nil)
-            window.close()
         }
+        overlayWindows.removeAll()
     }
 
     /// Check if overlay is currently showing
@@ -155,21 +164,46 @@ final class OverlayManager {
             overlayColor: overlayColor,
             overlayOpacity: overlayOpacity,
             message: message,
-            requireSkipConfirmation: requireSkipConfirmation,
-            onSkip: skipAction ?? {}
+            showingSkipConfirmation: showingSkipConfirmation,
+            onSkip: { [weak self] in self?.handleSkipTapped() },
+            onCancelSkip: { [weak self] in self?.handleCancelSkip() }
         )
+    }
+
+    // MARK: - Skip Confirmation
+
+    private func handleSkipTapped() {
+        if requireSkipConfirmation && !showingSkipConfirmation {
+            showingSkipConfirmation = true
+            updateOverlayViews()
+        } else {
+            let action = skipAction
+            DispatchQueue.main.async {
+                action?()
+            }
+        }
+    }
+
+    private func handleCancelSkip() {
+        showingSkipConfirmation = false
+        updateOverlayViews()
     }
 
     // MARK: - Countdown Timer
 
-    /// Ticks every second, decrements the counter, and pushes a new snapshot
-    /// into each overlay window's NSHostingView. Because this is a plain
-    /// Foundation Timer (not Combine Timer.publish), it is invalidated
-    /// deterministically in hideOverlay() before any view teardown.
     private func startCountdownTimer() {
-        let timer = Timer(timeInterval: Constants.timerTickInterval, repeats: true) { [weak self] _ in
-            guard let self, !self.overlayWindows.isEmpty else { return }
+        let timer = Timer(timeInterval: Constants.timerTickInterval, repeats: true) { [weak self] timer in
+            guard let self, !self.overlayWindows.isEmpty else {
+                timer.invalidate()
+                return
+            }
             self.currentSeconds = max(0, self.currentSeconds - 1)
+            if self.currentSeconds <= 0 {
+                // Stop ticking — don't update views when teardown is imminent
+                timer.invalidate()
+                self.countdownTimer = nil
+                return
+            }
             self.updateOverlayViews()
         }
         countdownTimer = timer
@@ -187,10 +221,11 @@ final class OverlayManager {
 
     // MARK: - Safety Timer
 
-    /// Auto-dismiss overlay after break duration + 5s buffer as a failsafe
     private func startSafetyTimer() {
-        let timer = Timer(timeInterval: Constants.breakDuration + 5, repeats: false) { [weak self] _ in
+        let duration = Constants.breakDuration + 5
+        let timer = Timer(timeInterval: duration, repeats: false) { [weak self] _ in
             guard let self, self.isShowing else { return }
+            DebugLog.log("OverlayManager: safetyTimer FIRED — calling onDismiss")
             self.onDismiss?()
         }
         safetyTimer = timer

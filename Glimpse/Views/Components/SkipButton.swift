@@ -3,15 +3,18 @@
 //  Glimpse
 //
 //  Skip button with optional inline confirmation friction.
+//  Fully stateless: OverlayManager owns the confirmation state and
+//  pushes new snapshots, so there are no @State, withAnimation, or
+//  .transition() calls that could leave dangling render-tree references
+//  when the NSHostingView is torn down.
 //
 
 import SwiftUI
 
 struct SkipButton: View {
-    var requireConfirmation: Bool
+    let showingConfirmation: Bool
     let onSkip: () -> Void
-
-    @State private var showingConfirmation = false
+    let onCancelSkip: () -> Void
 
     var body: some View {
         if showingConfirmation {
@@ -27,9 +30,7 @@ struct SkipButton: View {
 
                 HStack(spacing: 16) {
                     Button {
-                        withAnimation(.easeInOut(duration: 0.2)) {
-                            showingConfirmation = false
-                        }
+                        onCancelSkip()
                     } label: {
                         Text("Continue Break")
                             .font(.system(size: 14, weight: .medium))
@@ -55,16 +56,9 @@ struct SkipButton: View {
                     .buttonStyle(.plain)
                 }
             }
-            .transition(.opacity)
         } else {
             Button {
-                if requireConfirmation {
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        showingConfirmation = true
-                    }
-                } else {
-                    onSkip()
-                }
+                onSkip()
             } label: {
                 HStack(spacing: 6) {
                     Image(systemName: "forward.fill")
@@ -78,7 +72,6 @@ struct SkipButton: View {
                 .clipShape(Capsule())
             }
             .buttonStyle(.plain)
-            .transition(.opacity)
         }
     }
 }
@@ -86,8 +79,8 @@ struct SkipButton: View {
 #Preview {
     ZStack {
         Color.black
-        SkipButton(requireConfirmation: false) {
+        SkipButton(showingConfirmation: false, onSkip: {
             print("Skipped")
-        }
+        }, onCancelSkip: {})
     }
 }

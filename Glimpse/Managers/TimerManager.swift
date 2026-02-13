@@ -23,6 +23,7 @@ final class TimerManager {
 
     /// Start the work timer
     func startWorkTimer() {
+        DebugLog.log("TimerManager.startWorkTimer()")
         stopTimer()
         remainingTime = Constants.workDuration
         isBreakTimer = false
@@ -31,6 +32,7 @@ final class TimerManager {
 
     /// Start the break timer
     func startBreakTimer() {
+        DebugLog.log("TimerManager.startBreakTimer()")
         stopTimer()
         remainingTime = Constants.breakDuration
         isBreakTimer = true
@@ -39,6 +41,7 @@ final class TimerManager {
 
     /// Resume timer with remaining time
     func resume(remainingTime: TimeInterval, isBreak: Bool) {
+        DebugLog.log("TimerManager.resume() — remaining=\(remainingTime), isBreak=\(isBreak)")
         stopTimer()
         self.remainingTime = remainingTime
         self.isBreakTimer = isBreak
@@ -47,6 +50,7 @@ final class TimerManager {
 
     /// Pause the timer
     func pause() {
+        DebugLog.log("TimerManager.pause()")
         stopTimer()
     }
 
@@ -71,7 +75,6 @@ final class TimerManager {
 
     private func startTimer() {
         // Create timer without auto-scheduling, then add only to .common mode
-        // (.common includes .default + .eventTracking, so it fires even during menus)
         let newTimer = Timer(timeInterval: Constants.timerTickInterval, repeats: true) { [weak self] _ in
             self?.tick()
         }

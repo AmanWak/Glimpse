@@ -7,18 +7,27 @@
 
 import UserNotifications
 
-final class NotificationManager: NSObject {
+final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
     static let shared = NotificationManager()
 
     private override init() {
         super.init()
     }
 
+    /// Set up the notification center delegate so notifications display while app is active
+    func setupDelegate() {
+        UNUserNotificationCenter.current().delegate = self
+    }
+
     /// Request notification permissions
     func requestPermission() {
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { granted, error in
-            if let error = error {
-                print("Notification permission error: \(error.localizedDescription)")
+        UNUserNotificationCenter.current().getNotificationSettings { settings in
+            if settings.authorizationStatus == .notDetermined {
+                UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, error in
+                    if let error = error {
+                        print("Notification permission error: \(error.localizedDescription)")
+                    }
+                }
             }
         }
     }
@@ -67,5 +76,13 @@ final class NotificationManager: NSObject {
     func clearNotifications() {
         UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
         UNUserNotificationCenter.current().removeAllDeliveredNotifications()
+    }
+
+    // MARK: - UNUserNotificationCenterDelegate
+
+    /// Show notifications even when the app is in the foreground
+    func userNotificationCenter(_ center: UNUserNotificationCenter,
+                                willPresent notification: UNNotification) async -> UNNotificationPresentationOptions {
+        return [.banner, .sound]
     }
 }
