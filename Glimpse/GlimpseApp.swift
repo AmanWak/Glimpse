@@ -134,8 +134,15 @@ struct GlimpseApp: App {
             NotificationManager.shared.showBreakNotification()
             timerManager.startBreakTimer()
         } else {
-            showOverlay()
-            timerManager.startBreakTimer()
+            // Check if we can show overlay (e.g. not in a full-screen game)
+            if overlayManager.canShowOverlay() {
+                showOverlay()
+                timerManager.startBreakTimer()
+            } else {
+                DebugLog.log("GlimpseApp.startBreak() — overlay blocked, falling back to notification")
+                NotificationManager.shared.showBreakNotification()
+                timerManager.startBreakTimer()
+            }
         }
 
         appState.isOverlayShowing = overlayManager.isShowing
@@ -144,6 +151,10 @@ struct GlimpseApp: App {
     private func completeBreak() {
         guard appState.mode == .onBreak else { return }
         DebugLog.log("GlimpseApp.completeBreak()")
+
+        if appState.playSoundOnBreakEnd {
+            NSSound(named: "Glass")?.play()
+        }
 
         hideOverlay()
         appState.completeBreak()

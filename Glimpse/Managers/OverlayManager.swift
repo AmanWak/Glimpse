@@ -100,6 +100,35 @@ final class OverlayManager {
         return !overlayWindows.isEmpty
     }
 
+    /// Check if any full-screen app is active (to decide if we should fallback to notifications)
+    func canShowOverlay() -> Bool {
+        // Check if any full-screen app is active
+        guard let frontmostApp = NSWorkspace.shared.frontmostApplication else {
+            return true
+        }
+
+        // Check active window for full-screen mode
+        // We use CGWindowListCopyWindowInfo to get info about all on-screen windows
+        if let windows = CGWindowListCopyWindowInfo(.optionOnScreenOnly, kCGNullWindowID) as? [[String: Any]] {
+            for windowInfo in windows {
+                if let ownerPID = windowInfo[kCGWindowOwnerPID as String] as? Int32,
+                   ownerPID == frontmostApp.processIdentifier,
+                   let bounds = windowInfo[kCGWindowBounds as String] as? [String: Any],
+                   let screen = NSScreen.main {
+                    // Compare window bounds to screen bounds
+                    // If height is >= screen height, it's likely a full-screen app
+                    let windowHeight = bounds["Height"] as? CGFloat ?? 0
+                    let screenHeight = screen.frame.height
+                    if windowHeight >= screenHeight {
+                        DebugLog.log("OverlayManager.canShowOverlay() — detected full-screen app: \(frontmostApp.localizedName ?? "unknown")")
+                        return false
+                    }
+                }
+            }
+        }
+        return true
+    }
+
     // MARK: - Private
 
     private func createOverlayWindow(for screen: NSScreen) -> NSWindow {

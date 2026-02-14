@@ -108,6 +108,21 @@ final class AppState {
         }
     }
 
+    /// Play sound when break is over
+    var playSoundOnBreakEnd: Bool {
+        get {
+            access(keyPath: \.playSoundOnBreakEnd)
+            let key = Constants.Keys.playSoundOnBreakEnd
+            if UserDefaults.standard.object(forKey: key) == nil { return true }
+            return UserDefaults.standard.bool(forKey: key)
+        }
+        set {
+            withMutation(keyPath: \.playSoundOnBreakEnd) {
+                UserDefaults.standard.set(newValue, forKey: Constants.Keys.playSoundOnBreakEnd)
+            }
+        }
+    }
+
     // MARK: - Runtime State
 
     /// Current app mode

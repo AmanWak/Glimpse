@@ -38,6 +38,7 @@ I was getting dry eyes from staring at a screen all day working on computer scie
 ### Breaks That Actually Work
 - **Full-screen overlay** with background blur and customizable color/opacity — impossible to ignore, easy on the eyes
 - **Notification-only mode** if you prefer a gentler nudge
+- **Automatic notification fallback** if the overlay is blocked (e.g., during full-screen games)
 - **Heads-up notification** 30 seconds before each break so you can finish your thought
 - **Skip button** with optional confirmation to prevent accidental dismissal
 - **ESC key** to dismiss in emergencies
@@ -53,7 +54,7 @@ I was getting dry eyes from staring at a screen all day working on computer scie
 - Consecutive skip counter to keep you honest
 
 ### Customizable
-- **31 curated overlay colors** from light to dark — pick your vibe
+- **32 curated overlay colors** from light to dark — pick your vibe
 - Adjustable overlay opacity (50%–100%)
 - Choose between full-screen overlay or notification-only breaks
 - Toggle heads-up notifications on/off
@@ -62,6 +63,7 @@ I was getting dry eyes from staring at a screen all day working on computer scie
 ### Quality of Life
 - Handles sleep/wake gracefully — pauses when your Mac sleeps, resumes on wake
 - Curated break messages with a 10% chance of getting a rare/funny one
+- Optional sound chime when a break completes
 - Zero external dependencies — just Apple frameworks
 - Native Swift + SwiftUI — fast, small, and battery-friendly
 

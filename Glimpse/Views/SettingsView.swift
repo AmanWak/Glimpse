@@ -90,6 +90,8 @@ struct GeneralSettingsView: View {
                 Toggle("Heads-up notification before break", isOn: $appState.headsUpNotification)
 
                 Toggle("Confirm before skipping", isOn: $appState.skipConfirmation)
+                
+                Toggle("Play sound on break completion", isOn: $appState.playSoundOnBreakEnd)
             }
         }
         .formStyle(.grouped)
