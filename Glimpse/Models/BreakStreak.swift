@@ -51,19 +51,26 @@ struct BreakStreak: Codable, Equatable {
 
     /// Load from UserDefaults
     static func load() -> BreakStreak {
-        guard let data = UserDefaults.standard.data(forKey: Constants.Keys.breakStreak),
-              let streak = try? JSONDecoder().decode(BreakStreak.self, from: data) else {
+        guard let data = UserDefaults.standard.data(forKey: Constants.Keys.breakStreak) else {
             return BreakStreak()
         }
-        var loadedStreak = streak
-        loadedStreak.resetIfNewDay()
-        return loadedStreak
+        do {
+            var streak = try JSONDecoder().decode(BreakStreak.self, from: data)
+            streak.resetIfNewDay()
+            return streak
+        } catch {
+            DebugLog.log("BreakStreak: failed to decode — \(error.localizedDescription)")
+            return BreakStreak()
+        }
     }
 
     /// Save to UserDefaults
     func save() {
-        if let data = try? JSONEncoder().encode(self) {
+        do {
+            let data = try JSONEncoder().encode(self)
             UserDefaults.standard.set(data, forKey: Constants.Keys.breakStreak)
+        } catch {
+            DebugLog.log("BreakStreak: failed to encode — \(error.localizedDescription)")
         }
     }
 }

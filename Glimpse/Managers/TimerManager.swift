@@ -61,15 +61,11 @@ final class TimerManager {
         isBreakTimer = false
     }
 
-    /// Get current remaining time
-    var currentRemainingTime: TimeInterval {
-        return remainingTime
-    }
+    /// Current remaining time (used by tests)
+    var currentRemainingTime: TimeInterval { remainingTime }
 
-    /// Check if currently in break
-    var isInBreak: Bool {
-        return isBreakTimer
-    }
+    /// Whether the current timer is a break timer (used by tests)
+    var isInBreak: Bool { isBreakTimer }
 
     // MARK: - Private
 
@@ -88,6 +84,7 @@ final class TimerManager {
     }
 
     private func tick() {
+        guard timer != nil else { return }
         remainingTime -= Constants.timerTickInterval
 
         if remainingTime <= 0 {

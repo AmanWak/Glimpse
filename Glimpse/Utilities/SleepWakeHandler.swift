@@ -47,6 +47,8 @@ final class SleepWakeHandler {
 
     deinit {
         DebugLog.log("SleepWakeHandler.deinit")
+        onSleep = nil
+        onWake = nil
         if let observer = sleepObserver {
             NSWorkspace.shared.notificationCenter.removeObserver(observer)
         }
