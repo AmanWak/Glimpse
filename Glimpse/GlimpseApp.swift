@@ -116,8 +116,7 @@ struct GlimpseApp: App {
 
         appState.startBreak()
 
-        // Check if fullscreen app is active or user prefers notifications
-        if overlayManager.isFullscreenAppActive || appState.breakStyle == .notification {
+        if appState.breakStyle == .notification {
             NotificationManager.shared.showBreakNotification()
             timerManager.startBreakTimer()
         } else {
@@ -157,9 +156,7 @@ struct GlimpseApp: App {
             isBreak: appState.mode == .onBreak
         )
         // Re-show overlay if resuming into a break
-        if appState.mode == .onBreak
-            && appState.breakStyle == .overlay
-            && !overlayManager.isFullscreenAppActive {
+        if appState.mode == .onBreak && appState.breakStyle == .overlay {
             showOverlay()
         }
     }
