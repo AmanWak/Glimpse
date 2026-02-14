@@ -70,8 +70,9 @@ I was getting dry eyes from staring at a screen all day working on computer scie
 ## Installation
 
 ### Download
-<!-- TODO: Add download link when distributing -->
-Download the latest release from the [Releases](../../releases) page.
+Download the latest version of Glimpse from the [v1.0.0 Release](https://github.com/AmanWak/Glimpse/releases/download/v1.0.0/Glimpse.zip).
+
+> **Note:** Since Glimpse is currently self-published, you may need to **Right-click > Open** the app the first time to bypass the macOS "unidentified developer" warning.
 
 ### Build from Source
 
