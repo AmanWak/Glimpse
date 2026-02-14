@@ -40,6 +40,31 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
         }
     }
 
+    /// Show a heads-up notification before an upcoming break
+    func showHeadsUpNotification() {
+        let center = UNUserNotificationCenter.current()
+        center.getNotificationSettings { settings in
+            guard settings.authorizationStatus == .authorized else { return }
+
+            let content = UNMutableNotificationContent()
+            content.title = "Break Coming Up"
+            content.body = "You have a break in 30 seconds — good time to finish your thought."
+            content.sound = .default
+
+            let request = UNNotificationRequest(
+                identifier: "headsUp",
+                content: content,
+                trigger: nil
+            )
+
+            center.add(request) { error in
+                if let error = error {
+                    DebugLog.log("NotificationManager: heads-up failed — \(error.localizedDescription)")
+                }
+            }
+        }
+    }
+
     /// Show a break notification (checks authorization first)
     func showBreakNotification() {
         let center = UNUserNotificationCenter.current()

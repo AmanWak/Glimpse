@@ -18,6 +18,9 @@ struct GlimpseApp: App {
     /// Track if timer was running before sleep/pause
     @State private var wasRunningBeforeSleep = false
 
+    /// Track if heads-up notification was sent this work cycle
+    @State private var headsUpSent = false
+
     var body: some Scene {
         // Menu bar
         MenuBarExtra {
@@ -69,6 +72,15 @@ struct GlimpseApp: App {
     private func setupTimerCallbacks() {
         timerManager.onTick = { [self] remaining in
             appState.secondsRemaining = remaining
+
+            // Send heads-up notification 30s before break
+            if appState.mode == .working
+                && appState.headsUpNotification
+                && !headsUpSent
+                && remaining <= Constants.headsUpLeadTime {
+                headsUpSent = true
+                NotificationManager.shared.showHeadsUpNotification()
+            }
         }
 
         timerManager.onWorkComplete = { [self] in
@@ -115,6 +127,7 @@ struct GlimpseApp: App {
         guard appState.mode == .working else { return }
         DebugLog.log("GlimpseApp.startBreak() — breakStyle=\(appState.breakStyle)")
 
+        headsUpSent = false
         appState.startBreak()
 
         if appState.breakStyle == .notification {

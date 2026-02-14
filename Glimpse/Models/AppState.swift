@@ -80,6 +80,21 @@ final class AppState {
         }
     }
 
+    /// Show a heads-up notification before break
+    var headsUpNotification: Bool {
+        get {
+            access(keyPath: \.headsUpNotification)
+            let key = Constants.Keys.headsUpNotification
+            if UserDefaults.standard.object(forKey: key) == nil { return true }
+            return UserDefaults.standard.bool(forKey: key)
+        }
+        set {
+            withMutation(keyPath: \.headsUpNotification) {
+                UserDefaults.standard.set(newValue, forKey: Constants.Keys.headsUpNotification)
+            }
+        }
+    }
+
     /// Require confirmation before skipping
     var skipConfirmation: Bool {
         get {
