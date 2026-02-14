@@ -29,6 +29,9 @@ enum Constants {
     /// Timer tick interval
     static let timerTickInterval: TimeInterval = 1.0
 
+    /// Heads-up notification lead time before break (seconds)
+    static let headsUpLeadTime: TimeInterval = 30
+
     /// UserDefaults keys
     enum Keys {
         static let launchAtLogin = "launchAtLogin"
@@ -37,5 +40,6 @@ enum Constants {
         static let overlayColorHex = "overlayColorHex"
         static let skipConfirmation = "skipConfirmation"
         static let breakStreak = "breakStreak"
+        static let headsUpNotification = "headsUpNotification"
     }
 }

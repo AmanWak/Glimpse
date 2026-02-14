@@ -87,6 +87,8 @@ struct GeneralSettingsView: View {
                     }
                 }
 
+                Toggle("Heads-up notification before break", isOn: $appState.headsUpNotification)
+
                 Toggle("Confirm before skipping", isOn: $appState.skipConfirmation)
             }
         }
