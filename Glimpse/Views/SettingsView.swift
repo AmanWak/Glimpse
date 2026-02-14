@@ -133,7 +133,7 @@ struct AppearanceSettingsView: View {
         ("Lavender", "C3B1E1"),
         ("Sage", "B7C9A8"),
         ("Powder", "B6D0E2"),
-        ("Mint", "B5EAD7"),
+        ("Aquamarine", "5BDDAF"),
         ("Periwinkle", "A6B1E1"),
         ("Sand", "E2D4B7"),
         ("Rose", "E8A0BF"),

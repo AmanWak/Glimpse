@@ -24,13 +24,10 @@ enum Constants {
     static let maxOverlayOpacity: Double = 1.0
 
     /// Default overlay color (hex)
-    static let defaultOverlayColorHex: String = "1A1A2E"
+    static let defaultOverlayColorHex: String = "5BDDAF"
 
     /// Timer tick interval
     static let timerTickInterval: TimeInterval = 1.0
-
-    /// App bundle identifier
-    static let bundleIdentifier = "com.glimpse.app"
 
     /// UserDefaults keys
     enum Keys {

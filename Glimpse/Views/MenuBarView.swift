@@ -40,18 +40,18 @@ struct MenuBarView: View {
             // Streak info
             HStack {
                 Label("\(appState.streak.completedToday) breaks today", systemImage: "checkmark.circle.fill")
-                    .foregroundStyle(.green)
+                    .foregroundStyle(Color(hex: "5BDDAF"))
                 Spacer()
             }
-            .font(.subheadline)
+            .font(.callout)
 
             if appState.streak.consecutiveSkips > 0 {
                 HStack {
                     Label("\(appState.streak.consecutiveSkips) skipped in a row", systemImage: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(Color(hex: "E8837C"))
                     Spacer()
                 }
-                .font(.subheadline)
+                .font(.callout)
             }
 
             Divider()
