@@ -25,6 +25,7 @@ struct GlimpseApp: App {
                 appState: appState,
                 onPauseResume: handlePauseResume,
                 onSkipToBreak: handleSkipToBreak,
+                onSkipBreak: { skipBreak() },
                 onQuit: handleQuit
             )
         } label: {

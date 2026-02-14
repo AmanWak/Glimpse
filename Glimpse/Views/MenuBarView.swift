@@ -12,6 +12,7 @@ struct MenuBarView: View {
     @Environment(\.openSettings) private var openSettings
     let onPauseResume: () -> Void
     let onSkipToBreak: () -> Void
+    let onSkipBreak: () -> Void
     let onQuit: () -> Void
 
     var body: some View {
@@ -75,6 +76,14 @@ struct MenuBarView: View {
                         Label("Take Break Now", systemImage: "eye.fill")
                     }
                 }
+
+                if appState.mode == .onBreak && !appState.isOverlayShowing {
+                    Button {
+                        onSkipBreak()
+                    } label: {
+                        Label("Skip Break", systemImage: "forward.fill")
+                    }
+                }
             }
             .buttonStyle(.bordered)
 
@@ -110,6 +119,7 @@ struct MenuBarView: View {
         appState: AppState(),
         onPauseResume: {},
         onSkipToBreak: {},
+        onSkipBreak: {},
         onQuit: {}
     )
 }
