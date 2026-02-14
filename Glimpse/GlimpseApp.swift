@@ -29,7 +29,7 @@ struct GlimpseApp: App {
                 onQuit: handleQuit
             )
         } label: {
-            Image(systemName: appState.menuBarIcon)
+            Image("MenuBarIcon")
                 .onAppear {
                     initializeIfNeeded()
                 }
