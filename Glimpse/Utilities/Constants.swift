@@ -41,5 +41,6 @@ enum Constants {
         static let skipConfirmation = "skipConfirmation"
         static let breakStreak = "breakStreak"
         static let headsUpNotification = "headsUpNotification"
+        static let playSoundOnBreakEnd = "playSoundOnBreakEnd"
     }
 }
