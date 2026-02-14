@@ -19,8 +19,9 @@ struct MenuBarView: View {
         VStack(alignment: .leading, spacing: 12) {
             // Status header
             HStack {
-                Image(systemName: appState.menuBarIcon)
-                    .font(.title2)
+                Image("MenuBarIcon")
+                    .resizable()
+                    .frame(width: 20, height: 20)
                     .foregroundStyle(.secondary)
 
                 VStack(alignment: .leading, spacing: 2) {
