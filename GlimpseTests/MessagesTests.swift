@@ -10,12 +10,12 @@ import Testing
 
 struct MessagesTests {
 
-    @Test func standardMessagesContains25Items() {
-        #expect(Messages.standard.count == 25)
+    @Test func standardMessagesCountIsExpected() {
+        #expect(Messages.standard.count == 45)
     }
 
-    @Test func rareMessagesContains5Items() {
-        #expect(Messages.rare.count == 5)
+    @Test func rareMessagesCountIsExpected() {
+        #expect(Messages.rare.count == 15)
     }
 
     @Test func randomReturnsNonEmptyString() {
