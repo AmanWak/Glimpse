@@ -103,22 +103,28 @@ struct AppearanceSettingsView: View {
                         step: 0.05
                     )
                 }
-            }
 
-            Section {
-                // Preview
-                ZStack {
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(selectedColor.opacity(appState.overlayOpacity))
-                        .frame(height: 60)
-
-                    Text("Preview")
-                        .foregroundStyle(.white)
-                        .font(.headline)
+                Button("Reset to Defaults") {
+                    appState.overlayColorHex = Constants.defaultOverlayColorHex
+                    appState.overlayOpacity = Constants.defaultOverlayOpacity
+                    selectedColor = Color(hex: Constants.defaultOverlayColorHex)
                 }
-            } header: {
-                Text("Preview")
             }
+
+//            Section {
+//                // Preview
+//                ZStack {
+//                    RoundedRectangle(cornerRadius: 8)
+//                        .fill(selectedColor.opacity(appState.overlayOpacity))
+//                        .frame(height: 60)
+//
+//                    Text("")
+//                        .foregroundStyle(.white)
+//                        .font(.headline)
+//                }
+//            } header: {
+//                Text("")
+//            }
         }
         .formStyle(.grouped)
         .padding()

@@ -35,38 +35,6 @@ final class OverlayManager {
     /// Called when overlay is dismissed via safety timeout or Escape key
     var onDismiss: (() -> Void)?
 
-    /// Check if any app is in fullscreen mode
-    var isFullscreenAppActive: Bool {
-        guard let frontApp = NSWorkspace.shared.frontmostApplication else {
-            return false
-        }
-
-        // Check if the frontmost app has any fullscreen windows
-        let options = CGWindowListOption(arrayLiteral: .optionOnScreenOnly, .excludeDesktopElements)
-        guard let windowList = CGWindowListCopyWindowInfo(options, kCGNullWindowID) as? [[String: Any]] else {
-            return false
-        }
-
-        for windowInfo in windowList {
-            guard let windowPID = windowInfo[kCGWindowOwnerPID as String] as? Int32,
-                  windowPID == frontApp.processIdentifier,
-                  let bounds = windowInfo[kCGWindowBounds as String] as? [String: CGFloat] else {
-                continue
-            }
-
-            // Check if window covers the entire screen
-            for screen in NSScreen.screens {
-                let screenFrame = screen.frame
-                if let width = bounds["Width"], let height = bounds["Height"],
-                   width >= screenFrame.width && height >= screenFrame.height {
-                    return true
-                }
-            }
-        }
-
-        return false
-    }
-
     /// Show overlay on all screens with the given snapshot values.
     func showOverlay(initialSeconds: Int, overlayColor: Color, overlayOpacity: Double,
                      message: String, requireSkipConfirmation: Bool, onSkip: @escaping () -> Void) {
@@ -83,8 +51,8 @@ final class OverlayManager {
         self.skipAction = onSkip
 
         // Dismiss any open menu bar popover before showing overlay
-        if let keyWindow = NSApp.keyWindow, keyWindow is NSPanel {
-            keyWindow.orderOut(nil)
+        for window in NSApp.windows where window is NSPanel {
+            window.orderOut(nil)
         }
 
         // Create windows with initial view

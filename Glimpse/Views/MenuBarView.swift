@@ -9,6 +9,7 @@ import SwiftUI
 
 struct MenuBarView: View {
     @Bindable var appState: AppState
+    @Environment(\.openSettings) private var openSettings
     let onPauseResume: () -> Void
     let onSkipToBreak: () -> Void
     let onQuit: () -> Void
@@ -81,7 +82,10 @@ struct MenuBarView: View {
 
             // Settings and Quit
             HStack {
-                SettingsLink {
+                Button {
+                    openSettings()
+                    NSApp.activate()
+                } label: {
                     Label("Settings", systemImage: "gear")
                 }
                 .buttonStyle(.bordered)

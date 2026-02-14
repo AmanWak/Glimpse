@@ -23,9 +23,11 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
     func requestPermission() {
         UNUserNotificationCenter.current().getNotificationSettings { settings in
             if settings.authorizationStatus == .notDetermined {
-                UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, error in
-                    if let error = error {
-                        print("Notification permission error: \(error.localizedDescription)")
+                DispatchQueue.main.async {
+                    UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, error in
+                        if let error = error {
+                            print("Notification permission error: \(error.localizedDescription)")
+                        }
                     }
                 }
             }

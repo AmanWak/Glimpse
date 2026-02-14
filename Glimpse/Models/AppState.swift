@@ -29,35 +29,68 @@ final class AppState {
 
     /// Launch app at login
     var launchAtLogin: Bool {
-        get { UserDefaults.standard.bool(forKey: Constants.Keys.launchAtLogin) }
-        set { UserDefaults.standard.set(newValue, forKey: Constants.Keys.launchAtLogin) }
+        get {
+            access(keyPath: \.launchAtLogin)
+            return UserDefaults.standard.bool(forKey: Constants.Keys.launchAtLogin)
+        }
+        set {
+            withMutation(keyPath: \.launchAtLogin) {
+                UserDefaults.standard.set(newValue, forKey: Constants.Keys.launchAtLogin)
+            }
+        }
     }
 
     /// Break display style
     var breakStyle: BreakStyle {
         get {
+            access(keyPath: \.breakStyle)
             let raw = UserDefaults.standard.string(forKey: Constants.Keys.breakStyle) ?? BreakStyle.overlay.rawValue
             return BreakStyle(rawValue: raw) ?? .overlay
         }
-        set { UserDefaults.standard.set(newValue.rawValue, forKey: Constants.Keys.breakStyle) }
+        set {
+            withMutation(keyPath: \.breakStyle) {
+                UserDefaults.standard.set(newValue.rawValue, forKey: Constants.Keys.breakStyle)
+            }
+        }
     }
 
     /// Overlay opacity (0.5-1.0)
     var overlayOpacity: Double {
-        get { UserDefaults.standard.double(forKey: Constants.Keys.overlayOpacity).clamped(to: Constants.minOverlayOpacity...Constants.maxOverlayOpacity) }
-        set { UserDefaults.standard.set(newValue.clamped(to: Constants.minOverlayOpacity...Constants.maxOverlayOpacity), forKey: Constants.Keys.overlayOpacity) }
+        get {
+            access(keyPath: \.overlayOpacity)
+            return UserDefaults.standard.double(forKey: Constants.Keys.overlayOpacity).clamped(to: Constants.minOverlayOpacity...Constants.maxOverlayOpacity)
+        }
+        set {
+            withMutation(keyPath: \.overlayOpacity) {
+                UserDefaults.standard.set(newValue.clamped(to: Constants.minOverlayOpacity...Constants.maxOverlayOpacity), forKey: Constants.Keys.overlayOpacity)
+            }
+        }
     }
 
     /// Overlay color as hex string
     var overlayColorHex: String {
-        get { UserDefaults.standard.string(forKey: Constants.Keys.overlayColorHex) ?? Constants.defaultOverlayColorHex }
-        set { UserDefaults.standard.set(newValue, forKey: Constants.Keys.overlayColorHex) }
+        get {
+            access(keyPath: \.overlayColorHex)
+            return UserDefaults.standard.string(forKey: Constants.Keys.overlayColorHex) ?? Constants.defaultOverlayColorHex
+        }
+        set {
+            withMutation(keyPath: \.overlayColorHex) {
+                UserDefaults.standard.set(newValue, forKey: Constants.Keys.overlayColorHex)
+            }
+        }
     }
 
     /// Require confirmation before skipping
     var skipConfirmation: Bool {
-        get { UserDefaults.standard.bool(forKey: Constants.Keys.skipConfirmation) }
-        set { UserDefaults.standard.set(newValue, forKey: Constants.Keys.skipConfirmation) }
+        get {
+            access(keyPath: \.skipConfirmation)
+            return UserDefaults.standard.bool(forKey: Constants.Keys.skipConfirmation)
+        }
+        set {
+            withMutation(keyPath: \.skipConfirmation) {
+                UserDefaults.standard.set(newValue, forKey: Constants.Keys.skipConfirmation)
+            }
+        }
     }
 
     // MARK: - Runtime State
