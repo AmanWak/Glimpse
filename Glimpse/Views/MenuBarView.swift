@@ -21,7 +21,7 @@ struct MenuBarView: View {
             HStack {
                 Image("MenuBarIcon")
                     .resizable()
-                    .frame(width: 20, height: 20)
+                    .frame(width: 18, height: 18)
                     .foregroundStyle(.secondary)
 
                 VStack(alignment: .leading, spacing: 2) {
@@ -74,7 +74,13 @@ struct MenuBarView: View {
                     Button {
                         onSkipToBreak()
                     } label: {
-                        Label("Take Break Now", systemImage: "eye.fill")
+                        Label {
+                            Text("Take Break Now")
+                        } icon: {
+                            Image("MenuBarIcon")
+                                .resizable()
+                                .frame(width: 16, height: 16)
+                        }
                     }
                 }
 
