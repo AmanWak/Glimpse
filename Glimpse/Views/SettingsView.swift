@@ -252,9 +252,9 @@ struct ColorSlider: View {
 struct AboutView: View {
     var body: some View {
         VStack(spacing: 16) {
-            Image(systemName: "eye")
-                .font(.largeTitle)
-                .foregroundStyle(.secondary)
+            Image(nsImage: NSApp.applicationIconImage)
+                .resizable()
+                .frame(width: 64, height: 64)
 
             Text("Glimpse")
                 .font(.title2)
