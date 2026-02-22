@@ -145,7 +145,7 @@ final class OverlayManager {
         window.isOpaque = false
         window.hasShadow = false
         window.ignoresMouseEvents = false
-        window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
 
         let view = makeOverlayView()
         let hostingView = NSHostingView(rootView: AnyView(view))

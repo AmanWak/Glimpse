@@ -32,6 +32,9 @@ enum Constants {
     /// Heads-up notification lead time before break (seconds)
     static let headsUpLeadTime: TimeInterval = 30
 
+    /// Minimum sleep duration before resetting the work timer on wake (seconds)
+    static let sleepResetThreshold: TimeInterval = 60
+
     /// UserDefaults keys
     enum Keys {
         static let launchAtLogin = "launchAtLogin"
