@@ -18,6 +18,9 @@ struct GlimpseApp: App {
     /// Track if timer was running before sleep/pause
     @State private var wasRunningBeforeSleep = false
 
+    /// Timestamp when system entered sleep
+    @State private var sleepTimestamp: Date?
+
     /// Track if heads-up notification was sent this work cycle
     @State private var headsUpSent = false
 
@@ -103,6 +106,7 @@ struct GlimpseApp: App {
 
         sleepWakeHandler?.onSleep = { [self] in
             DebugLog.log("GlimpseApp: onSleep — mode=\(appState.mode)")
+            sleepTimestamp = Date()
             if appState.mode != .paused {
                 wasRunningBeforeSleep = true
                 timerManager.pause()
@@ -113,10 +117,23 @@ struct GlimpseApp: App {
         }
 
         sleepWakeHandler?.onWake = { [self] in
-            DebugLog.log("GlimpseApp: onWake — wasRunningBeforeSleep=\(wasRunningBeforeSleep)")
+            let sleepDuration = sleepTimestamp.map { Date().timeIntervalSince($0) } ?? 0
+            sleepTimestamp = nil
+            DebugLog.log("GlimpseApp: onWake — wasRunning=\(wasRunningBeforeSleep), sleepDuration=\(Int(sleepDuration))s")
+
             if wasRunningBeforeSleep {
                 wasRunningBeforeSleep = false
-                resumeTimer()
+
+                if sleepDuration >= Constants.sleepResetThreshold {
+                    // Long sleep — reset the work timer fresh
+                    DebugLog.log("GlimpseApp: sleep exceeded threshold, resetting work timer")
+                    hideOverlay()
+                    headsUpSent = false
+                    appState.startWorkPeriod()
+                    timerManager.startWorkTimer()
+                } else {
+                    resumeTimer()
+                }
             }
         }
     }
