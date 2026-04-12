@@ -10,6 +10,7 @@ import SwiftUI
 /// Break display style
 enum BreakStyle: String, CaseIterable, Identifiable {
     case overlay = "Full Screen Overlay"
+    case banner = "Floating Banner"
     case notification = "Notification Only"
 
     var id: String { rawValue }

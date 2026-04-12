@@ -17,6 +17,11 @@
 import AppKit
 import SwiftUI
 
+/// NSWindow subclass that can become key to receive keyboard events (ESC).
+private final class KeyableWindow: NSWindow {
+    override var canBecomeKey: Bool { true }
+}
+
 final class OverlayManager {
     private var overlayWindows: [NSWindow] = []
     private var safetyTimer: Timer?
@@ -55,11 +60,18 @@ final class OverlayManager {
             window.orderOut(nil)
         }
 
-        // Create windows with initial view
-        for screen in NSScreen.screens {
+        // Activate the app so local keyboard events (ESC) are delivered
+        NSApp.activate()
+
+        // Create windows with initial view — first window becomes key for ESC
+        for (index, screen) in NSScreen.screens.enumerated() {
             let window = createOverlayWindow(for: screen)
             overlayWindows.append(window)
-            window.orderFront(nil)
+            if index == 0 {
+                window.makeKeyAndOrderFront(nil)
+            } else {
+                window.orderFront(nil)
+            }
         }
 
         startCountdownTimer()
@@ -132,7 +144,7 @@ final class OverlayManager {
     // MARK: - Private
 
     private func createOverlayWindow(for screen: NSScreen) -> NSWindow {
-        let window = NSWindow(
+        let window = KeyableWindow(
             contentRect: screen.frame,
             styleMask: [.borderless],
             backing: .buffered,
@@ -237,6 +249,7 @@ final class OverlayManager {
     // MARK: - Escape Key Monitor
 
     private func startEscapeMonitor() {
+        // Local monitor — works because the overlay window is key
         escapeMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             if event.keyCode == 53 { // Escape key
                 guard let self, self.isShowing else { return event }

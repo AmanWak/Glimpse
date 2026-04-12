@@ -224,12 +224,20 @@ struct ColorSlider: View {
                 .frame(height: 28)
                 .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
 
-                // Selection indicator
-                RoundedRectangle(cornerRadius: 6, style: .continuous)
-                    .strokeBorder(.white, lineWidth: 2.5)
-                    .shadow(color: .black.opacity(0.3), radius: 2, x: 0, y: 1)
-                    .frame(width: max(segmentWidth + 4, 16), height: 32)
-                    .offset(x: CGFloat(selectedIndex) * segmentWidth + segmentWidth / 2 - max(segmentWidth + 4, 16) / 2)
+                // Selection indicator — bulges out around the selected swatch
+                let indicatorWidth = segmentWidth + 10
+                ZStack {
+                    colors[selectedIndex]
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .strokeBorder(.white, lineWidth: 2.5)
+                    RoundedRectangle(cornerRadius: 6.5, style: .continuous)
+                        .strokeBorder(.black.opacity(0.5), lineWidth: 0.5)
+                        .padding(2.5)
+                }
+                .frame(width: indicatorWidth, height: 40)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .shadow(color: .black.opacity(0.35), radius: 3, x: 0, y: 2)
+                .offset(x: CGFloat(selectedIndex) * segmentWidth + segmentWidth / 2 - indicatorWidth / 2)
             }
             .contentShape(Rectangle())
             .gesture(

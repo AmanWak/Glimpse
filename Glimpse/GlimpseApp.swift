@@ -12,6 +12,7 @@ struct GlimpseApp: App {
     @State private var appState = AppState()
     @State private var timerManager = TimerManager()
     @State private var overlayManager = OverlayManager()
+    @State private var bannerManager = BannerManager()
     @State private var sleepWakeHandler: SleepWakeHandler?
     @State private var isInitialized = false
 
@@ -128,6 +129,7 @@ struct GlimpseApp: App {
                     // Long sleep — reset the work timer fresh
                     DebugLog.log("GlimpseApp: sleep exceeded threshold, resetting work timer")
                     hideOverlay()
+                    hideBanner()
                     headsUpSent = false
                     appState.startWorkPeriod()
                     timerManager.startWorkTimer()
@@ -147,10 +149,14 @@ struct GlimpseApp: App {
         headsUpSent = false
         appState.startBreak()
 
-        if appState.breakStyle == .notification {
+        switch appState.breakStyle {
+        case .notification:
             NotificationManager.shared.showBreakNotification()
             timerManager.startBreakTimer()
-        } else {
+        case .banner:
+            showBanner()
+            timerManager.startBreakTimer()
+        case .overlay:
             // Check if we can show overlay (e.g. not in a full-screen game)
             if overlayManager.canShowOverlay() {
                 showOverlay()
@@ -174,6 +180,7 @@ struct GlimpseApp: App {
         }
 
         hideOverlay()
+        hideBanner()
         appState.completeBreak()
         timerManager.startWorkTimer()
 
@@ -187,6 +194,7 @@ struct GlimpseApp: App {
         DebugLog.log("GlimpseApp.skipBreak()")
 
         hideOverlay()
+        hideBanner()
         appState.skipBreak()
         timerManager.startWorkTimer()
     }
@@ -197,9 +205,16 @@ struct GlimpseApp: App {
             remainingTime: appState.secondsRemaining,
             isBreak: appState.mode == .onBreak
         )
-        // Re-show overlay if resuming into a break
-        if appState.mode == .onBreak && appState.breakStyle == .overlay {
-            showOverlay()
+        // Re-show visual break if resuming into a break
+        if appState.mode == .onBreak {
+            switch appState.breakStyle {
+            case .overlay:
+                showOverlay()
+            case .banner:
+                showBanner()
+            case .notification:
+                break
+            }
         }
     }
 
@@ -230,6 +245,24 @@ struct GlimpseApp: App {
         appState.isOverlayShowing = false
     }
 
+    // MARK: - Banner
+
+    private func showBanner() {
+        bannerManager.onDismiss = { [self] in
+            skipBreak()
+        }
+
+        bannerManager.showBanner(
+            initialSeconds: Int(appState.secondsRemaining),
+            overlayColor: Color(hex: appState.overlayColorHex)
+        )
+    }
+
+    private func hideBanner() {
+        bannerManager.onDismiss = nil
+        bannerManager.hideBanner()
+    }
+
     // MARK: - Menu Bar Actions
 
     private func handlePauseResume() {
@@ -239,6 +272,7 @@ struct GlimpseApp: App {
             timerManager.pause()
             appState.pause()
             hideOverlay()
+            hideBanner()
         }
     }
 
