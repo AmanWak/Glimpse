@@ -33,11 +33,11 @@ struct SkipButton: View {
                         onCancelSkip()
                     } label: {
                         Text("Continue Break")
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundStyle(.white.opacity(0.7))
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 8)
-                            .background(.white.opacity(0.1))
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(.black.opacity(0.85))
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 10)
+                            .background(.white.opacity(0.95))
                             .clipShape(Capsule())
                     }
                     .buttonStyle(.plain)
@@ -45,13 +45,11 @@ struct SkipButton: View {
                     Button {
                         onSkip()
                     } label: {
-                        Text("Skip")
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundStyle(.red.opacity(0.9))
-                            .padding(.horizontal, 16)
+                        Text("Skip anyway")
+                            .font(.system(size: 13, weight: .regular))
+                            .foregroundStyle(.white.opacity(0.55))
+                            .padding(.horizontal, 14)
                             .padding(.vertical, 8)
-                            .background(.red.opacity(0.15))
-                            .clipShape(Capsule())
                     }
                     .buttonStyle(.plain)
                 }

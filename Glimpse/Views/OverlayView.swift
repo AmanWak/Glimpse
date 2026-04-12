@@ -46,8 +46,12 @@ struct OverlayView: View {
                     onCancelSkip: onCancelSkip
                 )
 
+                Text("Press esc to skip")
+                    .font(.system(size: 12, weight: .regular))
+                    .foregroundStyle(.white.opacity(0.3))
+
                 Spacer()
-                    .frame(height: 60)
+                    .frame(height: 40)
             }
         }
         .ignoresSafeArea()
