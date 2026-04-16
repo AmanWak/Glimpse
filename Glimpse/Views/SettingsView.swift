@@ -24,12 +24,23 @@ struct SettingsView: View {
                     Label("Appearance", systemImage: "paintbrush")
                 }
 
+            AppsSettingsView()
+                .tabItem {
+                    Label("Apps", systemImage: "app.badge.checkmark")
+                }
+
+            NotesSettingsView(appState: appState)
+                .tabItem {
+                    Label("Notes", systemImage: "list.bullet.rectangle")
+                }
+
             AboutView()
                 .tabItem {
                     Label("About", systemImage: "questionmark.circle")
                 }
         }
-        .frame(width: 400, height: 280)
+        .toolbarBackgroundVisibility(.visible, for: .windowToolbar)
+        .frame(width: 400, height: 430)
     }
 }
 
@@ -49,6 +60,26 @@ struct GeneralSettingsView: View {
                         updateLaunchAtLogin(newValue)
                     }
                 ))
+            }
+
+            Section("Timing") {
+                Picker("Work interval", selection: Binding(
+                    get: { appState.workDuration },
+                    set: { appState.workDuration = $0 }
+                )) {
+                    ForEach(Constants.workDurationPresets, id: \.self) { duration in
+                        Text(formatDuration(duration)).tag(duration)
+                    }
+                }
+
+                Picker("Break duration", selection: Binding(
+                    get: { appState.breakDuration },
+                    set: { appState.breakDuration = $0 }
+                )) {
+                    ForEach(Constants.breakDurationPresets, id: \.self) { duration in
+                        Text(formatBreakDuration(duration)).tag(duration)
+                    }
+                }
             }
 
             Section {
@@ -92,6 +123,8 @@ struct GeneralSettingsView: View {
                 Toggle("Confirm before skipping", isOn: $appState.skipConfirmation)
                 
                 Toggle("Play sound on break completion", isOn: $appState.playSoundOnBreakEnd)
+
+                Toggle("Show countdown in menu bar", isOn: $appState.showMenuBarTimer)
             }
         }
         .formStyle(.grouped)
@@ -105,6 +138,21 @@ struct GeneralSettingsView: View {
         NotificationManager.shared.checkAuthorizationStatus { status in
             notificationStatus = status
         }
+    }
+
+    private func formatDuration(_ seconds: TimeInterval) -> String {
+        let minutes = Int(seconds) / 60
+        return "\(minutes) min"
+    }
+
+    private func formatBreakDuration(_ seconds: TimeInterval) -> String {
+        let secs = Int(seconds)
+        if secs >= 60 {
+            let mins = secs / 60
+            let remainder = secs % 60
+            return remainder > 0 ? "\(mins) min \(remainder) sec" : "\(mins) min"
+        }
+        return "\(secs) sec"
     }
 
     private func updateLaunchAtLogin(_ enabled: Bool) {
@@ -252,6 +300,191 @@ struct ColorSlider: View {
             )
         }
         .frame(height: 32)
+    }
+}
+
+// MARK: - Apps Settings
+
+struct AppsSettingsView: View {
+    @State private var enabled = UserDefaults.standard.bool(forKey: Constants.Keys.appAwarePauseEnabled)
+    @State private var watchedIDs = AppWatcher.loadWatchedBundleIDs()
+
+    private var presetBundleIDs: Set<String> {
+        Set(Constants.watchableAppPresets.map(\.bundleID))
+    }
+
+    /// Custom apps added by the user (not in the preset list)
+    private var customApps: [(name: String, bundleID: String)] {
+        watchedIDs
+            .filter { !presetBundleIDs.contains($0) }
+            .sorted()
+            .map { id in
+                let name = NSWorkspace.shared.runningApplications
+                    .first(where: { $0.bundleIdentifier == id })?
+                    .localizedName ?? id
+                return (name: name, bundleID: id)
+            }
+    }
+
+    /// Running apps available to add (regular GUI apps, not already watched, not Glimpse)
+    private var availableRunningApps: [(name: String, bundleID: String)] {
+        NSWorkspace.shared.runningApplications
+            .filter { app in
+                app.activationPolicy == .regular
+                    && app.bundleIdentifier != nil
+                    && app.bundleIdentifier != Bundle.main.bundleIdentifier
+                    && !watchedIDs.contains(app.bundleIdentifier!)
+                    && !presetBundleIDs.contains(app.bundleIdentifier!)
+            }
+            .compactMap { app in
+                guard let id = app.bundleIdentifier else { return nil }
+                return (name: app.localizedName ?? id, bundleID: id)
+            }
+            .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+    }
+
+    var body: some View {
+        Form {
+            Section {
+                Toggle("Pause during meetings", isOn: $enabled)
+                    .onChange(of: enabled) {
+                        UserDefaults.standard.set(enabled, forKey: Constants.Keys.appAwarePauseEnabled)
+                    }
+            }
+
+            if enabled {
+                Section("Common apps") {
+                    ForEach(Constants.watchableAppPresets, id: \.bundleID) { preset in
+                        Toggle(preset.name, isOn: Binding(
+                            get: { watchedIDs.contains(preset.bundleID) },
+                            set: { isOn in
+                                if isOn {
+                                    watchedIDs.insert(preset.bundleID)
+                                } else {
+                                    watchedIDs.remove(preset.bundleID)
+                                }
+                                AppWatcher.saveWatchedBundleIDs(watchedIDs)
+                            }
+                        ))
+                    }
+                }
+
+                if !customApps.isEmpty {
+                    Section("Other apps") {
+                        ForEach(customApps, id: \.bundleID) { app in
+                            HStack {
+                                Text(app.name)
+                                Spacer()
+                                Button {
+                                    watchedIDs.remove(app.bundleID)
+                                    AppWatcher.saveWatchedBundleIDs(watchedIDs)
+                                } label: {
+                                    Image(systemName: "minus.circle.fill")
+                                        .foregroundStyle(.red)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                    }
+                }
+
+                Section {
+                    let apps = availableRunningApps
+                    if apps.isEmpty {
+                        Text("No other apps running to add")
+                            .foregroundStyle(.secondary)
+                            .font(.callout)
+                    } else {
+                        Menu("Add from running apps...") {
+                            ForEach(apps, id: \.bundleID) { app in
+                                Button(app.name) {
+                                    watchedIDs.insert(app.bundleID)
+                                    AppWatcher.saveWatchedBundleIDs(watchedIDs)
+                                }
+                            }
+                        }
+                    }
+
+                    Text("Browser-based meetings (Google Meet) cannot be auto-detected.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+        .formStyle(.grouped)
+        .padding()
+    }
+}
+
+// MARK: - Notes Settings
+
+struct NotesSettingsView: View {
+    @Bindable var appState: AppState
+    @State private var newNote: String = ""
+
+    var body: some View {
+        Form {
+            Section {
+                Toggle("Show notes during breaks", isOn: $appState.breakNotesEnabled)
+
+                Text("Short reminders shown on the right side of the overlay during breaks.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            if appState.breakNotesEnabled {
+                Section("Your notes") {
+                    ForEach(Array(appState.breakNotes.enumerated()), id: \.offset) { index, note in
+                        HStack {
+                            Text(note)
+                            Spacer()
+                            Button {
+                                var notes = appState.breakNotes
+                                notes.remove(at: index)
+                                appState.breakNotes = notes
+                            } label: {
+                                Image(systemName: "minus.circle.fill")
+                                    .foregroundStyle(.red)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+
+                    HStack {
+                        TextField("Add a note...", text: $newNote)
+                            .textFieldStyle(.roundedBorder)
+                            .onSubmit {
+                                addNote()
+                            }
+                        Button {
+                            addNote()
+                        } label: {
+                            Image(systemName: "plus.circle.fill")
+                                .foregroundStyle(.green)
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(newNote.trimmingCharacters(in: .whitespaces).isEmpty)
+                    }
+                }
+
+                Section {
+                    Button("Reset to Defaults") {
+                        appState.breakNotes = Constants.defaultBreakNotes
+                    }
+                }
+            }
+        }
+        .formStyle(.grouped)
+        .padding()
+    }
+
+    private func addNote() {
+        let trimmed = newNote.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return }
+        var notes = appState.breakNotes
+        notes.append(trimmed)
+        appState.breakNotes = notes
+        newNote = ""
     }
 }
 
