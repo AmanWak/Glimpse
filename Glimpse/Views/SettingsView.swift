@@ -9,83 +9,37 @@ import SwiftUI
 import ServiceManagement
 import UserNotifications
 
-// MARK: - Tab Enum
-
-private enum Tab: Int, CaseIterable {
-    case general, appearance, apps, notes, about
-
-    var title: String {
-        switch self {
-        case .general: "General"
-        case .appearance: "Appearance"
-        case .apps: "Apps"
-        case .notes: "Notes"
-        case .about: "About"
-        }
-    }
-
-    var icon: String {
-        switch self {
-        case .general: "gear"
-        case .appearance: "paintbrush"
-        case .apps: "app.badge.checkmark"
-        case .notes: "list.bullet.rectangle"
-        case .about: "questionmark.circle"
-        }
-    }
-}
-
 struct SettingsView: View {
     @Bindable var appState: AppState
 
-    @State private var selectedTab: Tab = .general
-
     var body: some View {
-        let overlayColor = Color(hex: appState.overlayColorHex)
-
-        VStack(spacing: 0) {
-            HStack(spacing: 4) {
-                ForEach(Tab.allCases, id: \.self) { tab in
-                    Button {
-                        selectedTab = tab
-                    } label: {
-                        VStack(spacing: 3) {
-                            Image(systemName: tab.icon)
-                                .font(.system(size: 16))
-                            Text(tab.title)
-                                .font(.caption)
-                        }
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 7)
-                        .foregroundStyle(selectedTab == tab ? overlayColor : .secondary)
-                        .background(
-                            RoundedRectangle(cornerRadius: 8)
-                                .stroke(selectedTab == tab ? overlayColor : Color.clear, lineWidth: 1.5)
-                        )
-                    }
-                    .buttonStyle(.plain)
+        TabView {
+            GeneralSettingsView(appState: appState)
+                .tabItem {
+                    Label("General", systemImage: "gear")
                 }
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 10)
-            .padding(.horizontal, 8)
-            .background(.bar)
 
-            Divider()
-
-            Group {
-                switch selectedTab {
-                case .general:    GeneralSettingsView(appState: appState)
-                case .appearance: AppearanceSettingsView(appState: appState)
-                case .apps:       AppsSettingsView()
-                case .notes:      NotesSettingsView(appState: appState)
-                case .about:      AboutView()
+            AppearanceSettingsView(appState: appState)
+                .tabItem {
+                    Label("Appearance", systemImage: "paintbrush")
                 }
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+            AppsSettingsView()
+                .tabItem {
+                    Label("Apps", systemImage: "app.badge.checkmark")
+                }
+
+            NotesSettingsView(appState: appState)
+                .tabItem {
+                    Label("Notes", systemImage: "list.bullet.rectangle")
+                }
+
+            AboutView()
+                .tabItem {
+                    Label("About", systemImage: "questionmark.circle")
+                }
         }
-        .tint(overlayColor)
-        .background(overlayColor.opacity(0.07))
+        .toolbarBackgroundVisibility(.visible, for: .windowToolbar)
         .frame(width: 400, height: 430)
     }
 }
