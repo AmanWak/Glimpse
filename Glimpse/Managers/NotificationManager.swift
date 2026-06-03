@@ -66,7 +66,7 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
     }
 
     /// Show a break notification (checks authorization first)
-    func showBreakNotification() {
+    func showBreakNotification(message: String) {
         let center = UNUserNotificationCenter.current()
         center.getNotificationSettings { settings in
             guard settings.authorizationStatus == .authorized else {
@@ -76,7 +76,7 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
 
             let content = UNMutableNotificationContent()
             content.title = "Time for an Eye Break"
-            content.body = Messages.random()
+            content.body = message
             content.sound = .default
 
             let request = UNNotificationRequest(

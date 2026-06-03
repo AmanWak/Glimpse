@@ -8,11 +8,29 @@
 import Foundation
 
 enum Constants {
-    /// Work interval before a break (20 minutes in seconds)
-    static let workDuration: TimeInterval = 1200
+    /// Default work interval before a break (20 minutes in seconds)
+    static let defaultWorkDuration: TimeInterval = 1200
 
-    /// Break duration (20 seconds)
-    static let breakDuration: TimeInterval = 20
+    /// Default break duration (20 seconds)
+    static let defaultBreakDuration: TimeInterval = 20
+
+    /// Minimum work duration (5 minutes)
+    static let minWorkDuration: TimeInterval = 300
+
+    /// Maximum work duration (60 minutes)
+    static let maxWorkDuration: TimeInterval = 3600
+
+    /// Minimum break duration (10 seconds)
+    static let minBreakDuration: TimeInterval = 10
+
+    /// Maximum break duration (120 seconds)
+    static let maxBreakDuration: TimeInterval = 120
+
+    /// Work duration presets in seconds
+    static let workDurationPresets: [TimeInterval] = [300, 600, 900, 1200, 1500, 1800, 2700, 3600]
+
+    /// Break duration presets in seconds
+    static let breakDurationPresets: [TimeInterval] = [10, 15, 20, 30, 45, 60, 90, 120]
 
     /// Default overlay opacity (0.0-1.0)
     static let defaultOverlayOpacity: Double = 0.85
@@ -35,6 +53,25 @@ enum Constants {
     /// Minimum sleep duration before resetting the work timer on wake (seconds)
     static let sleepResetThreshold: TimeInterval = 60
 
+    /// Default break notes shown during overlay breaks
+    static let defaultBreakNotes: [String] = [
+        "Sit up straight",
+        "Drink some water",
+        "Relax your shoulders",
+        "Unclench your jaw",
+        "Take a deep breath",
+    ]
+
+    /// Preset apps for app-aware pausing
+    static let watchableAppPresets: [(name: String, bundleID: String)] = [
+        ("Zoom", "us.zoom.xos"),
+        ("Microsoft Teams", "com.microsoft.teams2"),
+        ("Webex", "com.webex.meetingmanager"),
+        ("Slack", "com.tinyspeck.slackmacgap"),
+        ("FaceTime", "com.apple.FaceTime"),
+        ("Discord", "com.hnc.Discord"),
+    ]
+
     /// UserDefaults keys
     enum Keys {
         static let launchAtLogin = "launchAtLogin"
@@ -45,5 +82,12 @@ enum Constants {
         static let breakStreak = "breakStreak"
         static let headsUpNotification = "headsUpNotification"
         static let playSoundOnBreakEnd = "playSoundOnBreakEnd"
+        static let appAwarePauseEnabled = "appAwarePauseEnabled"
+        static let watchedBundleIDs = "watchedBundleIDs"
+        static let showMenuBarTimer = "showMenuBarTimer"
+        static let workDuration = "workDuration"
+        static let breakDuration = "breakDuration"
+        static let breakNotesEnabled = "breakNotesEnabled"
+        static let breakNotes = "breakNotes"
     }
 }

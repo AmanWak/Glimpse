@@ -124,6 +124,87 @@ final class AppState {
         }
     }
 
+    /// Show countdown timer in menu bar
+    var showMenuBarTimer: Bool {
+        get {
+            access(keyPath: \.showMenuBarTimer)
+            let key = Constants.Keys.showMenuBarTimer
+            if UserDefaults.standard.object(forKey: key) == nil { return true }
+            return UserDefaults.standard.bool(forKey: key)
+        }
+        set {
+            withMutation(keyPath: \.showMenuBarTimer) {
+                UserDefaults.standard.set(newValue, forKey: Constants.Keys.showMenuBarTimer)
+            }
+        }
+    }
+
+    // MARK: - Break Notes
+
+    /// Show helpful notes during overlay breaks
+    var breakNotesEnabled: Bool {
+        get {
+            access(keyPath: \.breakNotesEnabled)
+            let key = Constants.Keys.breakNotesEnabled
+            if UserDefaults.standard.object(forKey: key) == nil { return true }
+            return UserDefaults.standard.bool(forKey: key)
+        }
+        set {
+            withMutation(keyPath: \.breakNotesEnabled) {
+                UserDefaults.standard.set(newValue, forKey: Constants.Keys.breakNotesEnabled)
+            }
+        }
+    }
+
+    /// User-customizable break notes
+    var breakNotes: [String] {
+        get {
+            access(keyPath: \.breakNotes)
+            guard let data = UserDefaults.standard.data(forKey: Constants.Keys.breakNotes),
+                  let notes = try? JSONDecoder().decode([String].self, from: data) else {
+                return Constants.defaultBreakNotes
+            }
+            return notes
+        }
+        set {
+            withMutation(keyPath: \.breakNotes) {
+                if let data = try? JSONEncoder().encode(newValue) {
+                    UserDefaults.standard.set(data, forKey: Constants.Keys.breakNotes)
+                }
+            }
+        }
+    }
+
+    // MARK: - Interval Settings
+
+    /// Work interval in seconds
+    var workDuration: TimeInterval {
+        get {
+            access(keyPath: \.workDuration)
+            let val = UserDefaults.standard.double(forKey: Constants.Keys.workDuration)
+            return val > 0 ? val : Constants.defaultWorkDuration
+        }
+        set {
+            withMutation(keyPath: \.workDuration) {
+                UserDefaults.standard.set(newValue, forKey: Constants.Keys.workDuration)
+            }
+        }
+    }
+
+    /// Break interval in seconds
+    var breakDuration: TimeInterval {
+        get {
+            access(keyPath: \.breakDuration)
+            let val = UserDefaults.standard.double(forKey: Constants.Keys.breakDuration)
+            return val > 0 ? val : Constants.defaultBreakDuration
+        }
+        set {
+            withMutation(keyPath: \.breakDuration) {
+                UserDefaults.standard.set(newValue, forKey: Constants.Keys.breakDuration)
+            }
+        }
+    }
+
     // MARK: - Runtime State
 
     /// Current app mode
@@ -133,7 +214,7 @@ final class AppState {
     private var modeBeforePause: AppMode = .working
 
     /// Seconds remaining in current timer
-    var secondsRemaining: TimeInterval = Constants.workDuration
+    var secondsRemaining: TimeInterval = Constants.defaultWorkDuration
 
     /// Current break message
     var currentMessage: String = ""
@@ -143,6 +224,15 @@ final class AppState {
 
     /// Whether overlay is currently shown
     var isOverlayShowing: Bool = false
+
+    /// Names of apps that triggered pause (nil = not paused by app)
+    var pausedByAppNames: [String]?
+
+    /// When snooze expires (nil = not snoozed)
+    var snoozeUntil: Date?
+
+    /// Whether app is currently snoozed
+    var isSnoozed: Bool { snoozeUntil != nil }
 
     // MARK: - Computed Properties
 
@@ -165,6 +255,12 @@ final class AppState {
         case .onBreak:
             return "Break: \(timeRemainingFormatted)s"
         case .paused:
+            if let names = pausedByAppNames, !names.isEmpty {
+                return "Paused — \(names.joined(separator: ", ")) detected"
+            }
+            if let until = snoozeUntil {
+                return "Snoozed until \(until.formatted(date: .omitted, time: .shortened))"
+            }
             return "Paused"
         }
     }
@@ -181,6 +277,23 @@ final class AppState {
         }
     }
 
+    /// Menu bar label text — compact format for limited menu bar space
+    var menuBarLabel: String {
+        guard showMenuBarTimer else { return "" }
+        switch mode {
+        case .working:
+            let secs = Int(secondsRemaining)
+            if secs >= 60 {
+                return "\(secs / 60)m"
+            }
+            return "\(secs)s"
+        case .onBreak:
+            return "\(Int(secondsRemaining))s"
+        case .paused:
+            return ""
+        }
+    }
+
     // MARK: - Methods
 
     /// Initialize with default opacity if not set
@@ -193,14 +306,14 @@ final class AppState {
     /// Start a new work period
     func startWorkPeriod() {
         mode = .working
-        secondsRemaining = Constants.workDuration
+        secondsRemaining = workDuration
     }
 
     /// Start a break
     func startBreak() {
         mode = .onBreak
-        secondsRemaining = Constants.breakDuration
-        currentMessage = Messages.random()
+        secondsRemaining = breakDuration
+        currentMessage = Messages.next()
     }
 
     /// Complete a break (not skipped)

@@ -20,7 +20,7 @@ struct TimerManagerTests {
         let manager = TimerManager()
         manager.startWorkTimer()
 
-        #expect(manager.currentRemainingTime == Constants.workDuration)
+        #expect(manager.currentRemainingTime == Constants.defaultWorkDuration)
         #expect(!manager.isInBreak)
 
         manager.stop()
@@ -30,7 +30,7 @@ struct TimerManagerTests {
         let manager = TimerManager()
         manager.startBreakTimer()
 
-        #expect(manager.currentRemainingTime == Constants.breakDuration)
+        #expect(manager.currentRemainingTime == Constants.defaultBreakDuration)
         #expect(manager.isInBreak)
 
         manager.stop()
@@ -77,7 +77,7 @@ struct TimerManagerTests {
         manager.startBreakTimer()
         manager.stop()
 
-        #expect(manager.currentRemainingTime == Constants.workDuration)
+        #expect(manager.currentRemainingTime == Constants.defaultWorkDuration)
         #expect(!manager.isInBreak)
     }
 
@@ -114,6 +114,68 @@ struct TimerManagerTests {
         try await Task.sleep(nanoseconds: 2_500_000_000) // 2.5 seconds
 
         #expect(workCompleted)
+    }
+
+    @Test func startWorkTimerWithCustomDuration() {
+        let manager = TimerManager()
+        manager.startWorkTimer(duration: 900) // 15 min
+
+        #expect(manager.currentRemainingTime == 900)
+        #expect(!manager.isInBreak)
+
+        manager.stop()
+    }
+
+    @Test func startBreakTimerWithCustomDuration() {
+        let manager = TimerManager()
+        manager.startBreakTimer(duration: 45) // 45 sec
+
+        #expect(manager.currentRemainingTime == 45)
+        #expect(manager.isInBreak)
+
+        manager.stop()
+    }
+
+    @Test func startingBreakTimerReplacesRunningWorkTimer() async throws {
+        let manager = TimerManager()
+        var workCompleted = false
+        var breakCompleted = false
+
+        manager.onWorkComplete = {
+            workCompleted = true
+        }
+        manager.onBreakComplete = {
+            breakCompleted = true
+        }
+
+        manager.startWorkTimer(duration: 1.1)
+        manager.startBreakTimer(duration: 2.5)
+
+        try await Task.sleep(nanoseconds: 1_500_000_000)
+
+        #expect(!workCompleted)
+        #expect(!breakCompleted)
+        #expect(manager.isInBreak)
+        #expect(manager.currentRemainingTime > 0)
+
+        manager.stop()
+    }
+
+    @Test func stopPreventsCompletionCallback() async throws {
+        let manager = TimerManager()
+        var workCompleted = false
+        manager.onWorkComplete = {
+            workCompleted = true
+        }
+
+        manager.resume(remainingTime: 1.1, isBreak: false)
+        manager.stop()
+
+        try await Task.sleep(nanoseconds: 1_500_000_000)
+
+        #expect(!workCompleted)
+        #expect(manager.currentRemainingTime == Constants.defaultWorkDuration)
+        #expect(!manager.isInBreak)
     }
 
     @Test func onBreakCompleteCallbackFires() async throws {

@@ -18,23 +18,23 @@ final class TimerManager {
     var onBreakComplete: (() -> Void)?
 
     private var timer: Timer?
-    private var remainingTime: TimeInterval = Constants.workDuration
+    private var remainingTime: TimeInterval = Constants.defaultWorkDuration
     private var isBreakTimer: Bool = false
 
-    /// Start the work timer
-    func startWorkTimer() {
-        DebugLog.log("TimerManager.startWorkTimer()")
+    /// Start the work timer with the given duration
+    func startWorkTimer(duration: TimeInterval = Constants.defaultWorkDuration) {
+        DebugLog.log("TimerManager.startWorkTimer(duration: \(duration))")
         stopTimer()
-        remainingTime = Constants.workDuration
+        remainingTime = duration
         isBreakTimer = false
         startTimer()
     }
 
-    /// Start the break timer
-    func startBreakTimer() {
-        DebugLog.log("TimerManager.startBreakTimer()")
+    /// Start the break timer with the given duration
+    func startBreakTimer(duration: TimeInterval = Constants.defaultBreakDuration) {
+        DebugLog.log("TimerManager.startBreakTimer(duration: \(duration))")
         stopTimer()
-        remainingTime = Constants.breakDuration
+        remainingTime = duration
         isBreakTimer = true
         startTimer()
     }
@@ -57,7 +57,7 @@ final class TimerManager {
     /// Stop and reset the timer
     func stop() {
         stopTimer()
-        remainingTime = Constants.workDuration
+        remainingTime = Constants.defaultWorkDuration
         isBreakTimer = false
     }
 

@@ -173,7 +173,7 @@ final class BannerManager {
     // MARK: - Safety Timer
 
     private func startSafetyTimer() {
-        let duration = Constants.breakDuration + 5
+        let duration = TimeInterval(currentSeconds) + 5
         let timer = Timer(timeInterval: duration, repeats: false) { [weak self] _ in
             guard let self, self.isShowing else { return }
             DebugLog.log("BannerManager: safetyTimer FIRED — calling onDismiss")

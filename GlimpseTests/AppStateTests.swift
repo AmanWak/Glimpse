@@ -10,6 +10,7 @@ import Foundation
 @testable import Glimpse
 
 @MainActor
+@Suite(.serialized)
 struct AppStateTests {
 
     @Test func initialModeIsWorking() {
@@ -19,7 +20,7 @@ struct AppStateTests {
 
     @Test func initialSecondsIsWorkDuration() {
         let state = AppState()
-        #expect(state.secondsRemaining == Constants.workDuration)
+        #expect(state.secondsRemaining == Constants.defaultWorkDuration)
     }
 
     @Test func startWorkPeriodSetsCorrectState() {
@@ -28,7 +29,7 @@ struct AppStateTests {
         state.startWorkPeriod()
 
         #expect(state.mode == .working)
-        #expect(state.secondsRemaining == Constants.workDuration)
+        #expect(state.secondsRemaining == state.workDuration)
     }
 
     @Test func startBreakSetsCorrectState() {
@@ -36,7 +37,7 @@ struct AppStateTests {
         state.startBreak()
 
         #expect(state.mode == .onBreak)
-        #expect(state.secondsRemaining == Constants.breakDuration)
+        #expect(state.secondsRemaining == state.breakDuration)
         #expect(!state.currentMessage.isEmpty)
     }
 
@@ -133,5 +134,97 @@ struct AppStateTests {
         state.mode = .paused
 
         #expect(state.menuBarIcon == "pause.circle")
+    }
+
+    // MARK: - Snooze
+
+    @Test func statusTextWhenSnoozed() {
+        let state = AppState()
+        state.pause()
+        state.snoozeUntil = Date().addingTimeInterval(3600)
+
+        #expect(state.statusText.hasPrefix("Snoozed until "))
+    }
+
+    @Test func isSnoozedWhenSnoozeUntilSet() {
+        let state = AppState()
+        state.snoozeUntil = Date().addingTimeInterval(3600)
+
+        #expect(state.isSnoozed == true)
+    }
+
+    @Test func isNotSnoozedWhenSnoozeUntilNil() {
+        let state = AppState()
+        state.snoozeUntil = nil
+
+        #expect(state.isSnoozed == false)
+    }
+
+    @Test func statusTextPausedNormally() {
+        let state = AppState()
+        state.pause()
+        state.snoozeUntil = nil
+        state.pausedByAppNames = nil
+
+        #expect(state.statusText == "Paused")
+    }
+
+    // MARK: - App-Aware Pause
+
+    @Test func statusTextWhenPausedBySingleApp() {
+        let state = AppState()
+        state.pause()
+        state.pausedByAppNames = ["Zoom"]
+
+        #expect(state.statusText == "Paused — Zoom detected")
+    }
+
+    @Test func statusTextWhenPausedByMultipleApps() {
+        let state = AppState()
+        state.pause()
+        state.pausedByAppNames = ["Zoom", "Slack"]
+
+        #expect(state.statusText == "Paused — Zoom, Slack detected")
+    }
+
+    @Test func pausedByAppTakesPriorityOverSnooze() {
+        let state = AppState()
+        state.pause()
+        state.pausedByAppNames = ["FaceTime"]
+        state.snoozeUntil = Date().addingTimeInterval(3600)
+
+        #expect(state.statusText == "Paused — FaceTime detected")
+    }
+
+    // MARK: - Break Notes
+
+    @Test func breakNotesEnabledByDefault() {
+        let state = AppState()
+        #expect(state.breakNotesEnabled == true)
+    }
+
+    @Test func breakNotesDefaultValues() {
+        let state = AppState()
+        #expect(state.breakNotes == Constants.defaultBreakNotes)
+        #expect(state.breakNotes.count == 5)
+    }
+
+    @Test func breakNotesCanBeModified() {
+        let state = AppState()
+        let customNotes = ["Stand up", "Stretch"]
+        state.breakNotes = customNotes
+        #expect(state.breakNotes == customNotes)
+
+        // Clean up
+        UserDefaults.standard.removeObject(forKey: Constants.Keys.breakNotes)
+    }
+
+    @Test func breakNotesEmptyArrayPersists() {
+        let state = AppState()
+        state.breakNotes = []
+        #expect(state.breakNotes.isEmpty)
+
+        // Clean up
+        UserDefaults.standard.removeObject(forKey: Constants.Keys.breakNotes)
     }
 }

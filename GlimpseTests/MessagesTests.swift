@@ -18,18 +18,43 @@ struct MessagesTests {
         #expect(Messages.rare.count == 15)
     }
 
+    @Test func exercisesMessagesCountIsExpected() {
+        #expect(Messages.exercises.count == 20)
+    }
+
+    @Test func postureMessagesCountIsExpected() {
+        #expect(Messages.posture.count == 20)
+    }
+
+    @Test func breathingMessagesCountIsExpected() {
+        #expect(Messages.breathing.count == 20)
+    }
+
+    @Test func walkMessagesCountIsExpected() {
+        #expect(Messages.walk.count == 20)
+    }
+
     @Test func randomReturnsNonEmptyString() {
         let message = Messages.random()
         #expect(!message.isEmpty)
     }
 
     @Test func randomReturnsValidMessage() {
+        let allMessages = Messages.standard + Messages.rare + Messages.exercises + Messages.posture + Messages.breathing + Messages.walk
         // Run multiple times to increase confidence
         for _ in 0..<100 {
             let message = Messages.random()
-            let isStandard = Messages.standard.contains(message)
-            let isRare = Messages.rare.contains(message)
-            #expect(isStandard || isRare)
+            #expect(allMessages.contains(message))
+        }
+    }
+
+    @Test func nextCyclesThroughAllCategories() {
+        let allMessages = Messages.standard + Messages.rare + Messages.exercises + Messages.posture + Messages.breathing + Messages.walk
+        // Call next() 12 times (two full cycles) — every message must be valid
+        for _ in 0..<12 {
+            let message = Messages.next()
+            #expect(allMessages.contains(message))
+            #expect(!message.isEmpty)
         }
     }
 
@@ -43,11 +68,29 @@ struct MessagesTests {
         #expect(uniqueMessages.count == Messages.rare.count)
     }
 
+    @Test func exercisesMessagesAreUnique() {
+        let uniqueMessages = Set(Messages.exercises)
+        #expect(uniqueMessages.count == Messages.exercises.count)
+    }
+
+    @Test func postureMessagesAreUnique() {
+        let uniqueMessages = Set(Messages.posture)
+        #expect(uniqueMessages.count == Messages.posture.count)
+    }
+
+    @Test func breathingMessagesAreUnique() {
+        let uniqueMessages = Set(Messages.breathing)
+        #expect(uniqueMessages.count == Messages.breathing.count)
+    }
+
+    @Test func walkMessagesAreUnique() {
+        let uniqueMessages = Set(Messages.walk)
+        #expect(uniqueMessages.count == Messages.walk.count)
+    }
+
     @Test func allMessagesAreNonEmpty() {
-        for message in Messages.standard {
-            #expect(!message.isEmpty)
-        }
-        for message in Messages.rare {
+        let allMessages = Messages.standard + Messages.rare + Messages.exercises + Messages.posture + Messages.breathing + Messages.walk
+        for message in allMessages {
             #expect(!message.isEmpty)
         }
     }

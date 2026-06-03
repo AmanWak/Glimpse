@@ -7,12 +7,29 @@
 
 import SwiftUI
 
+/// Menu bar label that shows icon + optional countdown text.
+/// Uses HStack instead of Label because MenuBarExtra applies icon-only
+/// label style. Observes AppState directly so updates are reactive.
+private struct MenuBarLabel: View {
+    let appState: AppState
+
+    var body: some View {
+        HStack(spacing: 0) {
+            Text(" " + appState.menuBarLabel)
+                .monospacedDigit()
+                .padding(.trailing, 8)
+            Image("MenuBarIcon")
+        }
+    }
+}
+
 @main
 struct GlimpseApp: App {
     @State private var appState = AppState()
     @State private var timerManager = TimerManager()
     @State private var overlayManager = OverlayManager()
     @State private var bannerManager = BannerManager()
+    @State private var appWatcher: AppWatcher?
     @State private var sleepWakeHandler: SleepWakeHandler?
     @State private var isInitialized = false
 
@@ -25,18 +42,22 @@ struct GlimpseApp: App {
     /// Track if heads-up notification was sent this work cycle
     @State private var headsUpSent = false
 
+    /// Pending snooze wake-up
+    @State private var snoozeWorkItem: DispatchWorkItem?
+
     var body: some Scene {
         // Menu bar
         MenuBarExtra {
             MenuBarView(
                 appState: appState,
                 onPauseResume: handlePauseResume,
+                onSnooze: handleSnooze,
                 onSkipToBreak: handleSkipToBreak,
                 onSkipBreak: { skipBreak() },
                 onQuit: handleQuit
             )
         } label: {
-            Image("MenuBarIcon")
+            MenuBarLabel(appState: appState)
                 .onAppear {
                     initializeIfNeeded()
                 }
@@ -68,7 +89,10 @@ struct GlimpseApp: App {
 
         // Start the first work cycle
         appState.startWorkPeriod()
-        timerManager.startWorkTimer()
+        timerManager.startWorkTimer(duration: appState.workDuration)
+
+        // App watcher must start AFTER work timer so it can pause a running timer
+        setupAppWatcher()
     }
 
     // MARK: - Lifecycle
@@ -132,12 +156,36 @@ struct GlimpseApp: App {
                     hideBanner()
                     headsUpSent = false
                     appState.startWorkPeriod()
-                    timerManager.startWorkTimer()
+                    timerManager.startWorkTimer(duration: appState.workDuration)
                 } else {
                     resumeTimer()
                 }
             }
         }
+    }
+
+    private func setupAppWatcher() {
+        let watcher = AppWatcher()
+
+        watcher.onShouldPause = { [self] appNames in
+            guard appState.mode != .paused else { return }
+            DebugLog.log("GlimpseApp: AppWatcher triggered pause — \(appNames)")
+            timerManager.pause()
+            appState.pause()
+            appState.pausedByAppNames = appNames
+            hideOverlay()
+            hideBanner()
+        }
+
+        watcher.onShouldResume = { [self] in
+            guard appState.pausedByAppNames != nil else { return }
+            DebugLog.log("GlimpseApp: AppWatcher triggered resume")
+            appState.pausedByAppNames = nil
+            resumeTimer()
+        }
+
+        appWatcher = watcher
+        watcher.evaluate()
     }
 
     // MARK: - Timer Control
@@ -149,23 +197,17 @@ struct GlimpseApp: App {
         headsUpSent = false
         appState.startBreak()
 
+        let breakDur = appState.breakDuration
         switch appState.breakStyle {
         case .notification:
-            NotificationManager.shared.showBreakNotification()
-            timerManager.startBreakTimer()
+            NotificationManager.shared.showBreakNotification(message: appState.currentMessage)
+            timerManager.startBreakTimer(duration: breakDur)
         case .banner:
             showBanner()
-            timerManager.startBreakTimer()
+            timerManager.startBreakTimer(duration: breakDur)
         case .overlay:
-            // Check if we can show overlay (e.g. not in a full-screen game)
-            if overlayManager.canShowOverlay() {
-                showOverlay()
-                timerManager.startBreakTimer()
-            } else {
-                DebugLog.log("GlimpseApp.startBreak() — overlay blocked, falling back to notification")
-                NotificationManager.shared.showBreakNotification()
-                timerManager.startBreakTimer()
-            }
+            showOverlay()
+            timerManager.startBreakTimer(duration: breakDur)
         }
 
         appState.isOverlayShowing = overlayManager.isShowing
@@ -182,7 +224,7 @@ struct GlimpseApp: App {
         hideOverlay()
         hideBanner()
         appState.completeBreak()
-        timerManager.startWorkTimer()
+        timerManager.startWorkTimer(duration: appState.workDuration)
 
         if appState.breakStyle == .notification {
             NotificationManager.shared.showBreakCompleteNotification()
@@ -196,7 +238,7 @@ struct GlimpseApp: App {
         hideOverlay()
         hideBanner()
         appState.skipBreak()
-        timerManager.startWorkTimer()
+        timerManager.startWorkTimer(duration: appState.workDuration)
     }
 
     private func resumeTimer() {
@@ -232,6 +274,7 @@ struct GlimpseApp: App {
             overlayOpacity: appState.overlayOpacity,
             message: appState.currentMessage,
             requireSkipConfirmation: appState.skipConfirmation && appState.streak.consecutiveSkips >= 2,
+            notes: appState.breakNotesEnabled ? appState.breakNotes : [],
             onSkip: { [self] in
                 skipBreak()
             }
@@ -267,6 +310,9 @@ struct GlimpseApp: App {
 
     private func handlePauseResume() {
         if appState.mode == .paused {
+            cancelSnooze()
+            appState.pausedByAppNames = nil
+            appWatcher?.suppressUntilClear()
             resumeTimer()
         } else {
             timerManager.pause()
@@ -274,6 +320,33 @@ struct GlimpseApp: App {
             hideOverlay()
             hideBanner()
         }
+    }
+
+    private func handleSnooze(hours: Int) {
+        cancelSnooze()
+        appState.pausedByAppNames = nil
+        appWatcher?.suppressUntilClear()
+
+        timerManager.pause()
+        appState.pause()
+        hideOverlay()
+        hideBanner()
+
+        appState.snoozeUntil = Date().addingTimeInterval(TimeInterval(hours * 3600))
+
+        let item = DispatchWorkItem { [self] in
+            guard appState.isSnoozed else { return }
+            appState.snoozeUntil = nil
+            resumeTimer()
+        }
+        snoozeWorkItem = item
+        DispatchQueue.main.asyncAfter(deadline: .now() + TimeInterval(hours * 3600), execute: item)
+    }
+
+    private func cancelSnooze() {
+        snoozeWorkItem?.cancel()
+        snoozeWorkItem = nil
+        appState.snoozeUntil = nil
     }
 
     private func handleSkipToBreak() {

@@ -35,6 +35,7 @@ final class OverlayManager {
     private var message: String = ""
     private var requireSkipConfirmation: Bool = false
     private var showingSkipConfirmation: Bool = false
+    private var notes: [String] = []
     private var skipAction: (() -> Void)?
 
     /// Called when overlay is dismissed via safety timeout or Escape key
@@ -42,7 +43,8 @@ final class OverlayManager {
 
     /// Show overlay on all screens with the given snapshot values.
     func showOverlay(initialSeconds: Int, overlayColor: Color, overlayOpacity: Double,
-                     message: String, requireSkipConfirmation: Bool, onSkip: @escaping () -> Void) {
+                     message: String, requireSkipConfirmation: Bool,
+                     notes: [String] = [], onSkip: @escaping () -> Void) {
         DebugLog.log("OverlayManager.showOverlay() — initialSeconds=\(initialSeconds), screens=\(NSScreen.screens.count)")
         hideOverlay()
 
@@ -53,6 +55,7 @@ final class OverlayManager {
         self.message = message
         self.requireSkipConfirmation = requireSkipConfirmation
         self.showingSkipConfirmation = false
+        self.notes = notes
         self.skipAction = onSkip
 
         // Dismiss any open menu bar popover before showing overlay
@@ -66,11 +69,20 @@ final class OverlayManager {
         // Create windows with initial view — first window becomes key for ESC
         for (index, screen) in NSScreen.screens.enumerated() {
             let window = createOverlayWindow(for: screen)
+            window.alphaValue = 0
             overlayWindows.append(window)
             if index == 0 {
                 window.makeKeyAndOrderFront(nil)
             } else {
                 window.orderFront(nil)
+            }
+        }
+
+        // Fade in all overlay windows
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 1.2
+            for window in overlayWindows {
+                window.animator().alphaValue = 1.0
             }
         }
 
@@ -173,6 +185,7 @@ final class OverlayManager {
             overlayColor: overlayColor,
             overlayOpacity: overlayOpacity,
             message: message,
+            notes: notes,
             showingSkipConfirmation: showingSkipConfirmation,
             onSkip: { [weak self] in self?.handleSkipTapped() },
             onCancelSkip: { [weak self] in self?.handleCancelSkip() }
@@ -231,7 +244,7 @@ final class OverlayManager {
     // MARK: - Safety Timer
 
     private func startSafetyTimer() {
-        let duration = Constants.breakDuration + 5
+        let duration = TimeInterval(currentSeconds) + 5
         let timer = Timer(timeInterval: duration, repeats: false) { [weak self] _ in
             guard let self, self.isShowing else { return }
             DebugLog.log("OverlayManager: safetyTimer FIRED — calling onDismiss")

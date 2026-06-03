@@ -17,6 +17,7 @@ struct OverlayView: View {
     let overlayColor: Color
     let overlayOpacity: Double
     let message: String
+    let notes: [String]
     let showingSkipConfirmation: Bool
     let onSkip: () -> Void
     let onCancelSkip: () -> Void
@@ -53,6 +54,16 @@ struct OverlayView: View {
                 Spacer()
                     .frame(height: 40)
             }
+            .padding(.horizontal, notes.isEmpty ? 0 : 400)
+
+            // Notes panel (right side)
+            if !notes.isEmpty {
+                HStack {
+                    Spacer()
+                    NotesPanelView(notes: notes)
+                        .padding(.trailing, 60)
+                }
+            }
         }
         .ignoresSafeArea()
     }
@@ -64,6 +75,7 @@ struct OverlayView: View {
         overlayColor: .blue,
         overlayOpacity: 0.8,
         message: "Look at something 20 feet away.",
+        notes: Constants.defaultBreakNotes,
         showingSkipConfirmation: false,
         onSkip: {},
         onCancelSkip: {}
