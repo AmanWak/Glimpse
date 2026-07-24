@@ -11,6 +11,7 @@ import SwiftUI
 enum BreakStyle: String, CaseIterable, Identifiable {
     case overlay = "Full Screen Overlay"
     case banner = "Floating Banner"
+    case notch = "Notch"
     case notification = "Notification Only"
 
     var id: String { rawValue }
@@ -59,11 +60,16 @@ final class AppState {
     var overlayOpacity: Double {
         get {
             access(keyPath: \.overlayOpacity)
-            return UserDefaults.standard.double(forKey: Constants.Keys.overlayOpacity).clamped(to: Constants.minOverlayOpacity...Constants.maxOverlayOpacity)
+            let key = Constants.Keys.overlayOpacity
+            if UserDefaults.standard.object(forKey: key) == nil { return Constants.defaultOverlayOpacity }
+            return UserDefaults.standard.double(forKey: key)
+                .clamped(to: Constants.minOverlayOpacity...Constants.maxOverlayOpacity)
         }
         set {
             withMutation(keyPath: \.overlayOpacity) {
-                UserDefaults.standard.set(newValue.clamped(to: Constants.minOverlayOpacity...Constants.maxOverlayOpacity), forKey: Constants.Keys.overlayOpacity)
+                UserDefaults.standard.set(
+                    newValue.clamped(to: Constants.minOverlayOpacity...Constants.maxOverlayOpacity),
+                    forKey: Constants.Keys.overlayOpacity)
             }
         }
     }
@@ -120,6 +126,21 @@ final class AppState {
         set {
             withMutation(keyPath: \.playSoundOnBreakEnd) {
                 UserDefaults.standard.set(newValue, forKey: Constants.Keys.playSoundOnBreakEnd)
+            }
+        }
+    }
+
+    /// Hold the break until a short pause in typing (capped at Constants.maxBreakHold)
+    var holdBreakWhileTyping: Bool {
+        get {
+            access(keyPath: \.holdBreakWhileTyping)
+            let key = Constants.Keys.holdBreakWhileTyping
+            if UserDefaults.standard.object(forKey: key) == nil { return true }
+            return UserDefaults.standard.bool(forKey: key)
+        }
+        set {
+            withMutation(keyPath: \.holdBreakWhileTyping) {
+                UserDefaults.standard.set(newValue, forKey: Constants.Keys.holdBreakWhileTyping)
             }
         }
     }
@@ -182,7 +203,7 @@ final class AppState {
         get {
             access(keyPath: \.workDuration)
             let val = UserDefaults.standard.double(forKey: Constants.Keys.workDuration)
-            return val > 0 ? val : Constants.defaultWorkDuration
+            return val > 0 ? val.clamped(to: Constants.minWorkDuration...Constants.maxWorkDuration) : Constants.defaultWorkDuration
         }
         set {
             withMutation(keyPath: \.workDuration) {
@@ -196,7 +217,7 @@ final class AppState {
         get {
             access(keyPath: \.breakDuration)
             let val = UserDefaults.standard.double(forKey: Constants.Keys.breakDuration)
-            return val > 0 ? val : Constants.defaultBreakDuration
+            return val > 0 ? val.clamped(to: Constants.minBreakDuration...Constants.maxBreakDuration) : Constants.defaultBreakDuration
         }
         set {
             withMutation(keyPath: \.breakDuration) {
@@ -225,6 +246,9 @@ final class AppState {
     /// Whether overlay is currently shown
     var isOverlayShowing: Bool = false
 
+    /// Whether a due break is being held for a pause in typing
+    var isAwaitingBreak: Bool = false
+
     /// Names of apps that triggered pause (nil = not paused by app)
     var pausedByAppNames: [String]?
 
@@ -251,6 +275,9 @@ final class AppState {
     var statusText: String {
         switch mode {
         case .working:
+            if isAwaitingBreak {
+                return "Break starts at your next typing pause"
+            }
             return "Next break in \(timeRemainingFormatted)"
         case .onBreak:
             return "Break: \(timeRemainingFormatted)s"
@@ -296,13 +323,6 @@ final class AppState {
 
     // MARK: - Methods
 
-    /// Initialize with default opacity if not set
-    init() {
-        if UserDefaults.standard.object(forKey: Constants.Keys.overlayOpacity) == nil {
-            UserDefaults.standard.set(Constants.defaultOverlayOpacity, forKey: Constants.Keys.overlayOpacity)
-        }
-    }
-
     /// Start a new work period
     func startWorkPeriod() {
         mode = .working
@@ -312,6 +332,7 @@ final class AppState {
     /// Start a break
     func startBreak() {
         mode = .onBreak
+        isAwaitingBreak = false
         secondsRemaining = breakDuration
         currentMessage = Messages.next()
     }
@@ -334,6 +355,7 @@ final class AppState {
     func pause() {
         modeBeforePause = mode
         mode = .paused
+        isAwaitingBreak = false
     }
 
     /// Resume from pause, restoring the correct mode

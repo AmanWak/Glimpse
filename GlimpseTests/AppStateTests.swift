@@ -227,4 +227,32 @@ struct AppStateTests {
         // Clean up
         UserDefaults.standard.removeObject(forKey: Constants.Keys.breakNotes)
     }
+
+    // MARK: - Awaiting Break (hold while typing)
+
+    @Test func statusTextWhileAwaitingBreak() {
+        let state = AppState()
+        state.startWorkPeriod()
+        state.isAwaitingBreak = true
+
+        #expect(state.statusText == "Break starts at your next typing pause")
+    }
+
+    @Test func startBreakClearsAwaitingFlag() {
+        let state = AppState()
+        state.isAwaitingBreak = true
+
+        state.startBreak()
+
+        #expect(state.isAwaitingBreak == false)
+    }
+
+    @Test func pauseClearsAwaitingFlag() {
+        let state = AppState()
+        state.isAwaitingBreak = true
+
+        state.pause()
+
+        #expect(state.isAwaitingBreak == false)
+    }
 }

@@ -17,7 +17,7 @@ enum DebugLog {
         guard enabled else { return }
         let fileName = (file as NSString).lastPathComponent
         let time = Self.formatter.string(from: Date())
-        let thread = Thread.isMainThread ? "main" : "bg(\(Thread.current))"
+        let thread = Thread.isMainThread ? "main" : "bg[\(Thread.current.name ?? "?")]"
         print("[\(time)] [\(thread)] [\(fileName):\(line)] \(message)")
     }
 

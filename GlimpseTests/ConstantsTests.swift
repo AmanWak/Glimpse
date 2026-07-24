@@ -55,4 +55,19 @@ struct ConstantsTests {
             #expect(note.count <= 40)
         }
     }
+
+    @Test func gamePresetsAreNonEmpty() {
+        #expect(!Constants.watchableGamePresets.isEmpty)
+    }
+
+    @Test func gamePresetBundleIDsAreUnique() {
+        let ids = Constants.watchableGamePresets.map(\.bundleID)
+        #expect(ids.count == Set(ids).count)
+    }
+
+    @Test func gamePresetsDoNotOverlapMeetingPresets() {
+        let gameIDs = Set(Constants.watchableGamePresets.map(\.bundleID))
+        let meetingIDs = Set(Constants.watchableAppPresets.map(\.bundleID))
+        #expect(gameIDs.isDisjoint(with: meetingIDs))
+    }
 }

@@ -41,8 +41,10 @@ I was getting dry eyes from staring at a screen all day while working on compute
 ### Break Reminders
 - **Full-screen overlay** with blur, configurable color, configurable opacity, countdown, skip button, and Esc-to-skip behavior
 - **Floating banner mode** for a lighter interruption that follows the cursor during breaks
+- **Notch mode** — a Live-Activity-style pill at the MacBook notch (top-center on Macs without a notch) that shows the break countdown
 - **Notification-only mode** for users who prefer system notifications
 - **Heads-up notification** 30 seconds before a break, if enabled
+- **Hold break while typing** — a due break waits (up to a minute) for a short pause in your typing instead of interrupting mid-keystroke
 - **Skip confirmation** after repeated skips, if enabled
 
 ### Menu Bar Workflow
@@ -55,6 +57,7 @@ I was getting dry eyes from staring at a screen all day while working on compute
 
 ### Tracking And Habit Support
 - Completed-break count for the current day
+- 7-day break history at a glance in the menu bar popover
 - Consecutive-skip counter
 - Curated break messages across eye care, posture, breathing, movement, and rare/fun variants
 - Optional notes shown during overlay breaks, with editable user notes
@@ -62,24 +65,32 @@ I was getting dry eyes from staring at a screen all day while working on compute
 ### Settings
 - Work interval presets from 5-60 minutes
 - Break duration presets from 10-120 seconds
-- Break style: full-screen overlay, floating banner, or notification only
+- Break style: full-screen overlay, floating banner, notch pill, or notification only
 - 32 curated overlay colors
 - Overlay opacity from 50%-100%
 - Launch at login
 - Heads-up notifications
 - Sound on break completion
 - Menu-bar countdown visibility
-- App-aware pause for selected running apps such as Zoom, Teams, Slack, FaceTime, Discord, and custom running apps
+- Auto-pause for watched apps — one unified list covering meeting apps (Zoom, Teams, Webex, Slack, FaceTime, Discord), game launchers (Steam, Epic Games, Battle.net, GOG Galaxy, Itch.io, Xbox), and any running app you add
+- Auto-pause during games — breaks hold off automatically while a game is the active app, no setup needed
+- Game-controller pause that suspends breaks while a controller is connected
+- Hold break while typing (on by default)
 
 ## Known Limitations
 
 - Browser-based meetings such as Google Meet are not auto-detected by the current app-aware pause implementation.
-- The README release link has intentionally been removed until the release artifact/version is verified.
 - The project target currently says macOS 26.1, even though some APIs used by the app are available on earlier macOS versions.
-- There is no analytics dashboard, weekly history, iCloud sync, account system, or App Store distribution.
-- `Refocus` is only a documented future concept in `Refocus_Feature_Plan.md`; it is not implemented.
+- There is no analytics dashboard, iCloud sync, account system, or App Store distribution.
+- `Refocus` (a post-break intention prompt) is only a planned future concept; it is not implemented.
 
 ## Installation
+
+### Download
+
+Grab the latest build from the [Releases page](https://github.com/AmanWak/Glimpse/releases).
+
+> **Note:** Glimpse is self-published, so the first time you open it you may need to **right-click → Open** to get past the macOS "unidentified developer" prompt.
 
 ### Build From Source
 

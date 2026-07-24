@@ -11,7 +11,7 @@ import Testing
 struct MessagesTests {
 
     @Test func standardMessagesCountIsExpected() {
-        #expect(Messages.standard.count == 45)
+        #expect(Messages.standard.count == 46)
     }
 
     @Test func rareMessagesCountIsExpected() {

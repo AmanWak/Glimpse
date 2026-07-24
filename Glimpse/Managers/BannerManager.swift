@@ -70,13 +70,16 @@ final class BannerManager {
         guard bannerWindow != nil || countdownTimer != nil || safetyTimer != nil else { return }
         DebugLog.log("BannerManager.hideBanner()")
 
-        // 1. Stop all timers and monitors
+        // 1. Clear closure references
+        onDismiss = nil
+
+        // 2. Stop all timers and monitors
         countdownTimer?.invalidate()
         countdownTimer = nil
         stopSafetyTimer()
         stopPositionTimer()
 
-        // 2. Disconnect SwiftUI view, hide window, drop reference
+        // 3. Disconnect SwiftUI view, hide window, drop reference
         if let window = bannerWindow {
             if let hostingView = window.contentView as? NSHostingView<AnyView> {
                 hostingView.rootView = AnyView(EmptyView())

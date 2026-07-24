@@ -40,7 +40,7 @@ final class AppWatcher {
     }
 
     var appNameForBundleID: (String) -> String = { bundleID in
-        if let preset = Constants.watchableAppPresets.first(where: { $0.bundleID == bundleID }) {
+        if let preset = Constants.allWatchablePresets.first(where: { $0.bundleID == bundleID }) {
             return preset.name
         }
         if let app = NSWorkspace.shared.runningApplications.first(where: { $0.bundleIdentifier == bundleID }) {
@@ -122,6 +122,27 @@ final class AppWatcher {
     static func saveWatchedBundleIDs(_ ids: Set<String>) {
         let data = try? JSONEncoder().encode(ids)
         UserDefaults.standard.set(data, forKey: Constants.Keys.watchedBundleIDs)
+    }
+
+    /// One-time migration: games used to be a separate watched list with its own
+    /// enable flag. Fold both into the unified list, then remove the legacy keys.
+    static func migrateLegacyGameSettings() {
+        let defaults = UserDefaults.standard
+        let hadGameIDs = defaults.object(forKey: Constants.Keys.watchedGameBundleIDs) != nil
+        let hadGameFlag = defaults.object(forKey: Constants.Keys.gamePauseEnabled) != nil
+        guard hadGameIDs || hadGameFlag else { return }
+
+        if let data = defaults.data(forKey: Constants.Keys.watchedGameBundleIDs),
+           let gameIDs = try? JSONDecoder().decode(Set<String>.self, from: data),
+           !gameIDs.isEmpty {
+            saveWatchedBundleIDs(loadWatchedBundleIDs().union(gameIDs))
+        }
+        if defaults.bool(forKey: Constants.Keys.gamePauseEnabled) {
+            defaults.set(true, forKey: Constants.Keys.appAwarePauseEnabled)
+        }
+        defaults.removeObject(forKey: Constants.Keys.watchedGameBundleIDs)
+        defaults.removeObject(forKey: Constants.Keys.gamePauseEnabled)
+        DebugLog.log("AppWatcher: migrated legacy game pause settings into unified list")
     }
 
     // MARK: - Observers

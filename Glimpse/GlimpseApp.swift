@@ -14,11 +14,14 @@ private struct MenuBarLabel: View {
     let appState: AppState
 
     var body: some View {
-        HStack(spacing: 0) {
-            Text(" " + appState.menuBarLabel)
-                .monospacedDigit()
-                .padding(.trailing, 8)
+        HStack(spacing: 3) {
             Image("MenuBarIcon")
+            // Only render the countdown when there is one — keeps the item compact and
+            // perfectly centered on the icon when paused/idle (label is "" then).
+            if !appState.menuBarLabel.isEmpty {
+                Text(appState.menuBarLabel)
+                    .monospacedDigit()
+            }
         }
     }
 }
@@ -29,6 +32,7 @@ struct GlimpseApp: App {
     @State private var timerManager = TimerManager()
     @State private var overlayManager = OverlayManager()
     @State private var bannerManager = BannerManager()
+    @State private var notchManager = NotchManager()
     @State private var appWatcher: AppWatcher?
     @State private var sleepWakeHandler: SleepWakeHandler?
     @State private var isInitialized = false
@@ -45,6 +49,15 @@ struct GlimpseApp: App {
     /// Pending snooze wake-up
     @State private var snoozeWorkItem: DispatchWorkItem?
 
+    /// Sources that have auto-triggered a pause ("apps" and/or "controller")
+    @State private var activePauseSources: Set<String> = []
+
+    /// Monitors game controller connect/disconnect events
+    @State private var gameControllerMonitor: GameControllerMonitor?
+
+    /// Pauses while a game is frontmost (mirrors macOS Game Mode's own trigger)
+    @State private var gameModeMonitor: GameModeMonitor?
+
     var body: some Scene {
         // Menu bar
         MenuBarExtra {
@@ -52,7 +65,7 @@ struct GlimpseApp: App {
                 appState: appState,
                 onPauseResume: handlePauseResume,
                 onSnooze: handleSnooze,
-                onSkipToBreak: handleSkipToBreak,
+                onSkipToBreak: startBreak,
                 onSkipBreak: { skipBreak() },
                 onQuit: handleQuit
             )
@@ -78,12 +91,20 @@ struct GlimpseApp: App {
     private func initializeIfNeeded() {
         guard !isInitialized else { return }
         isInitialized = true
+
+        // When the app is hosting unit tests, stay inert — timers, watchers, and
+        // the settings migration would otherwise race the tests on UserDefaults.
+        if NSClassFromString("XCTestCase") != nil {
+            DebugLog.log("GlimpseApp: test host detected — skipping startup")
+            return
+        }
         DebugLog.log("GlimpseApp: first-time setup")
 
         // Request notification permission (must happen after app is running)
         NotificationManager.shared.requestPermission()
 
         // One-time setup
+        AppWatcher.migrateLegacyGameSettings()
         setupTimerCallbacks()
         setupSleepWakeHandler()
 
@@ -93,6 +114,8 @@ struct GlimpseApp: App {
 
         // App watcher must start AFTER work timer so it can pause a running timer
         setupAppWatcher()
+        setupGameControllerMonitor()
+        setupGameModeMonitor()
     }
 
     // MARK: - Lifecycle
@@ -114,7 +137,7 @@ struct GlimpseApp: App {
         timerManager.onWorkComplete = { [self] in
             DebugLog.log("GlimpseApp: onWorkComplete — deferring startBreak()")
             DispatchQueue.main.async {
-                startBreak()
+                startBreakWhenTypingPauses()
             }
         }
 
@@ -152,8 +175,7 @@ struct GlimpseApp: App {
                 if sleepDuration >= Constants.sleepResetThreshold {
                     // Long sleep — reset the work timer fresh
                     DebugLog.log("GlimpseApp: sleep exceeded threshold, resetting work timer")
-                    hideOverlay()
-                    hideBanner()
+                    hideAllVisuals()
                     headsUpSent = false
                     appState.startWorkPeriod()
                     timerManager.startWorkTimer(duration: appState.workDuration)
@@ -166,29 +188,92 @@ struct GlimpseApp: App {
 
     private func setupAppWatcher() {
         let watcher = AppWatcher()
-
         watcher.onShouldPause = { [self] appNames in
-            guard appState.mode != .paused else { return }
-            DebugLog.log("GlimpseApp: AppWatcher triggered pause — \(appNames)")
-            timerManager.pause()
-            appState.pause()
-            appState.pausedByAppNames = appNames
-            hideOverlay()
-            hideBanner()
+            autoPause(source: "apps", triggeredBy: appNames)
         }
-
         watcher.onShouldResume = { [self] in
-            guard appState.pausedByAppNames != nil else { return }
-            DebugLog.log("GlimpseApp: AppWatcher triggered resume")
-            appState.pausedByAppNames = nil
-            resumeTimer()
+            autoResume(source: "apps")
         }
-
         appWatcher = watcher
         watcher.evaluate()
     }
 
+    private func setupGameControllerMonitor() {
+        let monitor = GameControllerMonitor()
+        monitor.onShouldPause = { [self] in
+            autoPause(source: "controller", triggeredBy: ["Game Controller"])
+        }
+        monitor.onShouldResume = { [self] in
+            autoResume(source: "controller")
+        }
+        gameControllerMonitor = monitor
+        monitor.evaluate()
+    }
+
+    private func setupGameModeMonitor() {
+        let monitor = GameModeMonitor()
+        monitor.onShouldPause = { [self] name in
+            autoPause(source: "gameMode", triggeredBy: [name])
+        }
+        monitor.onShouldResume = { [self] in
+            autoResume(source: "gameMode")
+        }
+        gameModeMonitor = monitor
+        monitor.evaluate()
+    }
+
+    // MARK: - Auto-Pause
+
+    /// Pause triggered by an auto-pause source (watched app or controller).
+    private func autoPause(source: String, triggeredBy names: [String]) {
+        activePauseSources.insert(source)
+        guard appState.mode != .paused else { return }
+        DebugLog.log("GlimpseApp: \(source) triggered pause — \(names)")
+        timerManager.pause()
+        appState.pause()
+        appState.pausedByAppNames = names
+        hideAllVisuals()
+    }
+
+    /// Resume when an auto-pause source clears — but only once all sources have.
+    private func autoResume(source: String) {
+        activePauseSources.remove(source)
+        guard activePauseSources.isEmpty, appState.pausedByAppNames != nil else { return }
+        DebugLog.log("GlimpseApp: \(source) triggered resume")
+        appState.pausedByAppNames = nil
+        resumeTimer()
+    }
+
     // MARK: - Timer Control
+
+    /// Start the break now, or — if the user is mid-keystroke and the setting
+    /// is on — hold it until a short pause in typing (capped at maxBreakHold).
+    private func startBreakWhenTypingPauses() {
+        guard appState.mode == .working else { return }
+        guard appState.holdBreakWhileTyping,
+              InputActivity.secondsSinceLastKeyPress() < Constants.typingPauseThreshold else {
+            startBreak()
+            return
+        }
+        DebugLog.log("GlimpseApp: holding break — user is typing")
+        appState.isAwaitingBreak = true
+        pollForTypingPause(deadline: Date().addingTimeInterval(Constants.maxBreakHold))
+    }
+
+    /// Re-check every half second until typing pauses or the hold cap is hit.
+    /// Exits silently if the user pauses/snoozes meanwhile (pause() clears
+    /// isAwaitingBreak; the resumed 0s work timer re-fires onWorkComplete).
+    private func pollForTypingPause(deadline: Date) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [self] in
+            guard appState.mode == .working, appState.isAwaitingBreak else { return }
+            if Date() >= deadline
+                || InputActivity.secondsSinceLastKeyPress() >= Constants.typingPauseThreshold {
+                startBreak()
+            } else {
+                pollForTypingPause(deadline: deadline)
+            }
+        }
+    }
 
     private func startBreak() {
         guard appState.mode == .working else { return }
@@ -204,6 +289,9 @@ struct GlimpseApp: App {
             timerManager.startBreakTimer(duration: breakDur)
         case .banner:
             showBanner()
+            timerManager.startBreakTimer(duration: breakDur)
+        case .notch:
+            showNotch()
             timerManager.startBreakTimer(duration: breakDur)
         case .overlay:
             showOverlay()
@@ -221,8 +309,7 @@ struct GlimpseApp: App {
             NSSound(named: "Glass")?.play()
         }
 
-        hideOverlay()
-        hideBanner()
+        hideAllVisuals()
         appState.completeBreak()
         timerManager.startWorkTimer(duration: appState.workDuration)
 
@@ -235,8 +322,7 @@ struct GlimpseApp: App {
         guard appState.mode == .onBreak else { return }
         DebugLog.log("GlimpseApp.skipBreak()")
 
-        hideOverlay()
-        hideBanner()
+        hideAllVisuals()
         appState.skipBreak()
         timerManager.startWorkTimer(duration: appState.workDuration)
     }
@@ -254,6 +340,8 @@ struct GlimpseApp: App {
                 showOverlay()
             case .banner:
                 showBanner()
+            case .notch:
+                showNotch()
             case .notification:
                 break
             }
@@ -306,31 +394,61 @@ struct GlimpseApp: App {
         bannerManager.hideBanner()
     }
 
+    // MARK: - Notch
+
+    private func showNotch() {
+        notchManager.onDismiss = { [self] in
+            skipBreak()
+        }
+
+        notchManager.showNotch(
+            initialSeconds: Int(appState.secondsRemaining),
+            overlayColor: Color(hex: appState.overlayColorHex)
+        )
+    }
+
+    private func hideNotch() {
+        notchManager.onDismiss = nil
+        notchManager.hideNotch()
+    }
+
+    /// Hide whatever break visual is currently showing (overlay, banner, and/or notch).
+    private func hideAllVisuals() {
+        hideOverlay()
+        hideBanner()
+        hideNotch()
+    }
+
     // MARK: - Menu Bar Actions
 
     private func handlePauseResume() {
         if appState.mode == .paused {
             cancelSnooze()
+            activePauseSources.removeAll()
             appState.pausedByAppNames = nil
             appWatcher?.suppressUntilClear()
+            gameControllerMonitor?.suppressUntilClear()
+            gameModeMonitor?.suppressUntilClear()
             resumeTimer()
         } else {
+            activePauseSources.removeAll()
             timerManager.pause()
             appState.pause()
-            hideOverlay()
-            hideBanner()
+            hideAllVisuals()
         }
     }
 
     private func handleSnooze(hours: Int) {
         cancelSnooze()
+        activePauseSources.removeAll()
         appState.pausedByAppNames = nil
         appWatcher?.suppressUntilClear()
+        gameControllerMonitor?.suppressUntilClear()
+        gameModeMonitor?.suppressUntilClear()
 
         timerManager.pause()
         appState.pause()
-        hideOverlay()
-        hideBanner()
+        hideAllVisuals()
 
         appState.snoozeUntil = Date().addingTimeInterval(TimeInterval(hours * 3600))
 
@@ -347,10 +465,6 @@ struct GlimpseApp: App {
         snoozeWorkItem?.cancel()
         snoozeWorkItem = nil
         appState.snoozeUntil = nil
-    }
-
-    private func handleSkipToBreak() {
-        startBreak()
     }
 
     private func handleQuit() {

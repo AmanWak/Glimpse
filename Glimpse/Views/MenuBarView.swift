@@ -59,6 +59,11 @@ struct MenuBarView: View {
                 .font(.callout)
             }
 
+            // Last 7 days mini-chart — only once there's history beyond today
+            if appState.streak.dailyHistory.count > 1 {
+                SevenDayHistoryView(counts: appState.streak.lastSevenDays())
+            }
+
             Divider()
 
             // Controls — equal-width buttons
@@ -154,6 +159,9 @@ struct MenuBarView: View {
         }
         .padding()
         .frame(width: 280)
+        .onDisappear {
+            dismissSnoozeOptions()
+        }
     }
 
     private func startSnoozeAutoHideTimer() {
@@ -169,6 +177,28 @@ struct MenuBarView: View {
         snoozeTimerTask?.cancel()
         snoozeTimerTask = nil
         showingSnoozeOptions = false
+    }
+}
+
+/// Compact bar row showing completed breaks for the last 7 days (today rightmost).
+private struct SevenDayHistoryView: View {
+    let counts: [Int]
+
+    private var maxCount: Int { max(counts.max() ?? 0, 1) }
+
+    var body: some View {
+        HStack(alignment: .bottom, spacing: 4) {
+            ForEach(Array(counts.enumerated()), id: \.offset) { _, count in
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(count > 0 ? Color(hex: "5BDDAF") : Color.secondary.opacity(0.25))
+                    .frame(width: 14, height: count > 0 ? max(6, 22 * CGFloat(count) / CGFloat(maxCount)) : 3)
+                    .help(count == 1 ? "1 break" : "\(count) breaks")
+            }
+            Spacer()
+            Text("Last 7 days")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+        }
     }
 }
 

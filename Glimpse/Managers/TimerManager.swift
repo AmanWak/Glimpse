@@ -84,7 +84,6 @@ final class TimerManager {
     }
 
     private func tick() {
-        guard timer != nil else { return }
         remainingTime -= Constants.timerTickInterval
 
         if remainingTime <= 0 {

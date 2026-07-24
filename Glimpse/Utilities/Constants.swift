@@ -53,6 +53,12 @@ enum Constants {
     /// Minimum sleep duration before resetting the work timer on wake (seconds)
     static let sleepResetThreshold: TimeInterval = 60
 
+    /// Quiet gap in typing required before a held break may start (seconds)
+    static let typingPauseThreshold: TimeInterval = 1.5
+
+    /// Maximum time a break is held while the user keeps typing (seconds)
+    static let maxBreakHold: TimeInterval = 60
+
     /// Default break notes shown during overlay breaks
     static let defaultBreakNotes: [String] = [
         "Sit up straight",
@@ -62,7 +68,7 @@ enum Constants {
         "Take a deep breath",
     ]
 
-    /// Preset apps for app-aware pausing
+    /// Preset meeting apps offered in the auto-pause "Add App" menu
     static let watchableAppPresets: [(name: String, bundleID: String)] = [
         ("Zoom", "us.zoom.xos"),
         ("Microsoft Teams", "com.microsoft.teams2"),
@@ -71,6 +77,21 @@ enum Constants {
         ("FaceTime", "com.apple.FaceTime"),
         ("Discord", "com.hnc.Discord"),
     ]
+
+    /// Preset game launchers offered in the auto-pause "Add App" menu
+    static let watchableGamePresets: [(name: String, bundleID: String)] = [
+        ("Steam", "com.valvesoftware.steam"),
+        ("Epic Games", "com.epicgames.EpicGamesLauncher"),
+        ("Battle.net", "net.battle.app"),
+        ("GOG Galaxy", "com.gogcom.GOGGalaxy"),
+        ("Itch.io", "io.itch.app"),
+        ("Xbox", "com.microsoft.GamingApp"),
+    ]
+
+    /// All auto-pause presets (meetings + game launchers) for name lookup
+    static var allWatchablePresets: [(name: String, bundleID: String)] {
+        watchableAppPresets + watchableGamePresets
+    }
 
     /// UserDefaults keys
     enum Keys {
@@ -84,7 +105,13 @@ enum Constants {
         static let playSoundOnBreakEnd = "playSoundOnBreakEnd"
         static let appAwarePauseEnabled = "appAwarePauseEnabled"
         static let watchedBundleIDs = "watchedBundleIDs"
+        // Legacy keys — games merged into the unified watched list; kept for one-time migration
+        static let gamePauseEnabled = "gamePauseEnabled"
+        static let watchedGameBundleIDs = "watchedGameBundleIDs"
+        static let controllerPauseEnabled = "controllerPauseEnabled"
+        static let gameModePauseEnabled = "gameModePauseEnabled"
         static let showMenuBarTimer = "showMenuBarTimer"
+        static let holdBreakWhileTyping = "holdBreakWhileTyping"
         static let workDuration = "workDuration"
         static let breakDuration = "breakDuration"
         static let breakNotesEnabled = "breakNotesEnabled"

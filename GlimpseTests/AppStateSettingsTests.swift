@@ -21,9 +21,11 @@ struct AppStateSettingsTests {
         Constants.Keys.breakStreak,
         Constants.Keys.headsUpNotification,
         Constants.Keys.playSoundOnBreakEnd,
-        Constants.Keys.appAwarePauseEnabled,
-        Constants.Keys.watchedBundleIDs,
+        // Note: appAwarePauseEnabled/watchedBundleIDs deliberately absent — they
+        // belong to AppWatcher, and AppWatcherPersistenceTests runs in parallel
+        // with this suite on the same UserDefaults.
         Constants.Keys.showMenuBarTimer,
+        Constants.Keys.holdBreakWhileTyping,
         Constants.Keys.workDuration,
         Constants.Keys.breakDuration,
         Constants.Keys.breakNotesEnabled,
@@ -48,8 +50,21 @@ struct AppStateSettingsTests {
         #expect(state.skipConfirmation == false)
         #expect(state.playSoundOnBreakEnd == true)
         #expect(state.showMenuBarTimer == true)
+        #expect(state.holdBreakWhileTyping == true)
         #expect(state.breakNotesEnabled == true)
         #expect(state.breakNotes == Constants.defaultBreakNotes)
+
+        resetDefaults()
+    }
+
+    @Test func holdBreakWhileTypingPersistsWhenDisabled() {
+        resetDefaults()
+        let state = AppState()
+
+        state.holdBreakWhileTyping = false
+
+        #expect(state.holdBreakWhileTyping == false)
+        #expect(AppState().holdBreakWhileTyping == false)
 
         resetDefaults()
     }

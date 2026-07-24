@@ -28,6 +28,12 @@ final class OverlayManager {
     private var escapeMonitor: Any?
     private var countdownTimer: Timer?
 
+    private static let escapeKeyCode: UInt16 = 53
+
+    deinit {
+        stopEscapeMonitor()
+    }
+
     /// Snapshot values for rebuilding the overlay view each tick
     private var currentSeconds: Int = 0
     private var overlayColor: Color = .black
@@ -122,35 +128,6 @@ final class OverlayManager {
     /// Check if overlay is currently showing
     var isShowing: Bool {
         return !overlayWindows.isEmpty
-    }
-
-    /// Check if any full-screen app is active (to decide if we should fallback to notifications)
-    func canShowOverlay() -> Bool {
-        // Check if any full-screen app is active
-        guard let frontmostApp = NSWorkspace.shared.frontmostApplication else {
-            return true
-        }
-
-        // Check active window for full-screen mode
-        // We use CGWindowListCopyWindowInfo to get info about all on-screen windows
-        if let windows = CGWindowListCopyWindowInfo(.optionOnScreenOnly, kCGNullWindowID) as? [[String: Any]] {
-            for windowInfo in windows {
-                if let ownerPID = windowInfo[kCGWindowOwnerPID as String] as? Int32,
-                   ownerPID == frontmostApp.processIdentifier,
-                   let bounds = windowInfo[kCGWindowBounds as String] as? [String: Any],
-                   let screen = NSScreen.main {
-                    // Compare window bounds to screen bounds
-                    // If height is >= screen height, it's likely a full-screen app
-                    let windowHeight = bounds["Height"] as? CGFloat ?? 0
-                    let screenHeight = screen.frame.height
-                    if windowHeight >= screenHeight {
-                        DebugLog.log("OverlayManager.canShowOverlay() — detected full-screen app: \(frontmostApp.localizedName ?? "unknown")")
-                        return false
-                    }
-                }
-            }
-        }
-        return true
     }
 
     // MARK: - Private
@@ -264,7 +241,7 @@ final class OverlayManager {
     private func startEscapeMonitor() {
         // Local monitor — works because the overlay window is key
         escapeMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
-            if event.keyCode == 53 { // Escape key
+            if event.keyCode == OverlayManager.escapeKeyCode {
                 guard let self, self.isShowing else { return event }
                 self.onDismiss?()
                 return nil // consume the event

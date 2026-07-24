@@ -62,3 +62,13 @@ fastlane/test_output
 
 # Archives
 *.xcarchive
+
+# Local-only dev / planning / strategy docs (kept off the public repo)
+/CLAUDE.md
+/AGENTS.md
+/docs/
+Glimpse/Managers/README.md
+Glimpse/Models/README.md
+Glimpse/Views/README.md
+Glimpse/Utilities/README.md
+GlimpseTests/README.md

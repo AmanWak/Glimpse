@@ -42,77 +42,40 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
 
     /// Show a heads-up notification before an upcoming break
     func showHeadsUpNotification() {
-        let center = UNUserNotificationCenter.current()
-        center.getNotificationSettings { settings in
-            guard settings.authorizationStatus == .authorized else { return }
-
-            let content = UNMutableNotificationContent()
-            content.title = "Break Coming Up"
-            content.body = "You have a break in 30 seconds — good time to finish your thought."
-            content.sound = .default
-
-            let request = UNNotificationRequest(
-                identifier: "headsUp",
-                content: content,
-                trigger: nil
-            )
-
-            center.add(request) { error in
-                if let error = error {
-                    DebugLog.log("NotificationManager: heads-up failed — \(error.localizedDescription)")
-                }
-            }
-        }
+        post(identifier: "headsUp",
+             title: "Break Coming Up",
+             body: "You have a break in 30 seconds — good time to finish your thought.")
     }
 
     /// Show a break notification (checks authorization first)
     func showBreakNotification(message: String) {
-        let center = UNUserNotificationCenter.current()
-        center.getNotificationSettings { settings in
-            guard settings.authorizationStatus == .authorized else {
-                DebugLog.log("NotificationManager: cannot show notification — status=\(settings.authorizationStatus.rawValue)")
-                return
-            }
-
-            let content = UNMutableNotificationContent()
-            content.title = "Time for an Eye Break"
-            content.body = message
-            content.sound = .default
-
-            let request = UNNotificationRequest(
-                identifier: UUID().uuidString,
-                content: content,
-                trigger: nil
-            )
-
-            center.add(request) { error in
-                if let error = error {
-                    DebugLog.log("NotificationManager: failed to show — \(error.localizedDescription)")
-                }
-            }
-        }
+        post(identifier: UUID().uuidString,
+             title: "Time for an Eye Break",
+             body: message)
     }
 
     /// Show break completion notification
     func showBreakCompleteNotification() {
+        post(identifier: UUID().uuidString,
+             title: "Break Complete",
+             body: "Great job! Your eyes thank you.")
+    }
+
+    private func post(identifier: String, title: String, body: String) {
         let center = UNUserNotificationCenter.current()
         center.getNotificationSettings { settings in
-            guard settings.authorizationStatus == .authorized else { return }
-
+            guard settings.authorizationStatus == .authorized else {
+                DebugLog.log("NotificationManager: cannot post '\(identifier)' — status=\(settings.authorizationStatus.rawValue)")
+                return
+            }
             let content = UNMutableNotificationContent()
-            content.title = "Break Complete"
-            content.body = "Great job! Your eyes thank you."
+            content.title = title
+            content.body = body
             content.sound = .default
-
-            let request = UNNotificationRequest(
-                identifier: UUID().uuidString,
-                content: content,
-                trigger: nil
-            )
-
+            let request = UNNotificationRequest(identifier: identifier, content: content, trigger: nil)
             center.add(request) { error in
                 if let error = error {
-                    DebugLog.log("NotificationManager: failed to show — \(error.localizedDescription)")
+                    DebugLog.log("NotificationManager: failed to post '\(identifier)' — \(error.localizedDescription)")
                 }
             }
         }
