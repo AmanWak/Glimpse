@@ -137,11 +137,7 @@ struct MenuBarView: View {
             // Settings and Quit
             HStack {
                 Button {
-                    openSettings()
-                    NSApp.activate(ignoringOtherApps: true)
-                    if let settingsWindow = NSApp.windows.first(where: { $0.title == "Settings" }) {
-                        settingsWindow.makeKeyAndOrderFront(nil)
-                    }
+                    showSettings()
                 } label: {
                     Label("Settings", systemImage: "gear")
                 }
@@ -162,6 +158,19 @@ struct MenuBarView: View {
         .onDisappear {
             dismissSnoozeOptions()
         }
+    }
+
+    // MARK: - Settings Window
+
+    /// Open Settings and pull it to the front, whether it is new or already open behind
+    /// other apps.
+    ///
+    /// `openSettings()` on its own is silent when the window already exists, which leaves
+    /// the user hunting for it behind whatever they were working in. See
+    /// `SettingsWindow` for why the raise cannot be done by title or done synchronously.
+    private func showSettings() {
+        openSettings()
+        SettingsWindow.raise()
     }
 
     private func startSnoozeAutoHideTimer() {

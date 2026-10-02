@@ -70,16 +70,19 @@ final class BannerManager {
         guard bannerWindow != nil || countdownTimer != nil || safetyTimer != nil else { return }
         DebugLog.log("BannerManager.hideBanner()")
 
-        // 1. Clear closure references
-        onDismiss = nil
+        // NOTE: do NOT clear `onDismiss` here. `showBanner()` calls `hideBanner()` as its
+        // first step, which runs *after* the caller has already installed the callback —
+        // clearing it here left a live banner whose safety-timer failsafe fired into nil.
+        // Reachable by sleeping mid-break and waking inside `sleepResetThreshold`.
+        // GlimpseApp.hideBanner() clears it at the call site, which is the correct place.
 
-        // 2. Stop all timers and monitors
+        // 1. Stop all timers and monitors
         countdownTimer?.invalidate()
         countdownTimer = nil
         stopSafetyTimer()
         stopPositionTimer()
 
-        // 3. Disconnect SwiftUI view, hide window, drop reference
+        // 2. Disconnect SwiftUI view, hide window, drop reference
         if let window = bannerWindow {
             if let hostingView = window.contentView as? NSHostingView<AnyView> {
                 hostingView.rootView = AnyView(EmptyView())

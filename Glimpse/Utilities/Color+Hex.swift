@@ -35,6 +35,27 @@ extension Color {
         )
     }
 
+    /// A version of this color bright enough to read as a foreground accent on a dark
+    /// surface.
+    ///
+    /// `overlayColorHex` is picked as a full-screen *background*, and users often choose a
+    /// near-black one (e.g. #0B2B1F). Reusing that directly as an icon tint on the dark notch
+    /// pill makes the icon effectively invisible. This lifts brightness while preserving the hue
+    /// the user chose. Colors that are already bright are returned untouched, and greys stay
+    /// grey rather than acquiring a hue out of nowhere.
+    var legibleAccent: Color {
+        guard let base = NSColor(self).usingColorSpace(.sRGB) else { return self }
+        var hue: CGFloat = 0, saturation: CGFloat = 0, brightness: CGFloat = 0, alpha: CGFloat = 0
+        base.getHue(&hue, saturation: &saturation, brightness: &brightness, alpha: &alpha)
+        guard brightness < 0.7 else { return self }
+        return Color(
+            hue: Double(hue),
+            saturation: saturation < 0.08 ? 0 : Double(max(saturation, 0.45)),
+            brightness: 0.82,
+            opacity: Double(alpha)
+        )
+    }
+
     /// Convert Color to hex string (without # prefix)
     var hexString: String {
         guard let components = NSColor(self).usingColorSpace(.sRGB) else {

@@ -5,9 +5,28 @@
 //  Timing constants and defaults for the 20-20-20 rule.
 //
 
+import CoreGraphics
 import Foundation
 
 enum Constants {
+
+    // MARK: - Notch Pill Geometry
+
+    /// Radius of the concave cove where the pill sweeps out into the menu bar line. The
+    /// window is this much wider than the pill body on each side. Matches DynamicNotchKit's
+    /// expanded-state value, which is the proven number for a wide panel like ours.
+    static let notchTopCornerRadius: CGFloat = 15
+
+    /// Radius of the pill's bottom corners. Also from DynamicNotchKit's expanded state.
+    static let notchBottomRadius: CGFloat = 20
+
+    /// How far the pill body extends past the notch on each side. Modest on purpose —
+    /// every extra point of rendered black sits next to true bezel black and loses.
+    static let notchBodyOverhang: CGFloat = 22
+
+    /// Height of the pill below the notch / screen edge.
+    static let notchBodyHeight: CGFloat = 46
+
     /// Default work interval before a break (20 minutes in seconds)
     static let defaultWorkDuration: TimeInterval = 1200
 
@@ -46,6 +65,11 @@ enum Constants {
 
     /// Timer tick interval
     static let timerTickInterval: TimeInterval = 1.0
+
+    /// How long the full-screen overlay takes to fade in. Paired with an easeIn
+    /// curve in OverlayManager — the curve, not this number, is what makes the
+    /// arrival feel gentle rather than abrupt.
+    static let overlayFadeInDuration: TimeInterval = 1.2
 
     /// Heads-up notification lead time before break (seconds)
     static let headsUpLeadTime: TimeInterval = 30

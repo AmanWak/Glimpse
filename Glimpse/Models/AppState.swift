@@ -311,11 +311,11 @@ final class AppState {
         case .working:
             let secs = Int(secondsRemaining)
             if secs >= 60 {
-                return "\(secs / 60)m"
+                return " \(secs / 60)m"
             }
-            return "\(secs)s"
+            return " \(secs)s"
         case .onBreak:
-            return "\(Int(secondsRemaining))s"
+            return " \(Int(secondsRemaining))s"
         case .paused:
             return ""
         }

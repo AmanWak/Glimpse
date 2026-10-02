@@ -27,7 +27,36 @@ final class GameModeMonitor {
     private var deactivateObserver: NSObjectProtocol?
     private var defaultsObserver: NSObjectProtocol?
 
+    // MARK: - Injectable config (defaults read from UserDefaults / NSWorkspace)
+
+    /// Enabled with default ON — the user wants breaks off during games out of the box.
+    /// Mirrors the codebase pattern of treating an unset key as its default value.
+    var configEnabled: () -> Bool = {
+        let key = Constants.Keys.gameModePauseEnabled
+        if UserDefaults.standard.object(forKey: key) == nil { return true }
+        return UserDefaults.standard.bool(forKey: key)
+    }
+
+    /// The frontmost app's display name if it is a game, otherwise nil.
+    var frontmostGameName: () -> String? = {
+        guard let app = NSWorkspace.shared.frontmostApplication,
+              let url = app.bundleURL,
+              let bundle = Bundle(url: url),
+              let category = bundle.object(forInfoDictionaryKey: "LSApplicationCategoryType") as? String,
+              GameModeMonitor.isGameCategory(category) else { return nil }
+        return app.localizedName ?? "Game"
+    }
+
     init() {
+        setupObservers()
+    }
+
+    /// Convenience init that skips observers (for testing)
+    init(skipObservers: Bool) {
+        if !skipObservers { setupObservers() }
+    }
+
+    private func setupObservers() {
         let wsCenter = NSWorkspace.shared.notificationCenter
         activateObserver = wsCenter.addObserver(
             forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main
@@ -46,7 +75,7 @@ final class GameModeMonitor {
     }
 
     func evaluate() {
-        guard isEnabled() else {
+        guard configEnabled() else {
             if isPausing { isPausing = false; onShouldResume?() }
             return
         }
@@ -73,27 +102,9 @@ final class GameModeMonitor {
 
     // MARK: - Detection
 
-    /// Enabled with default ON — the user wants breaks off during games out of the box.
-    /// Mirrors the codebase pattern of treating an unset key as its default value.
-    private func isEnabled() -> Bool {
-        let key = Constants.Keys.gameModePauseEnabled
-        if UserDefaults.standard.object(forKey: key) == nil { return true }
-        return UserDefaults.standard.bool(forKey: key)
-    }
-
-    /// The frontmost app's display name if it is a game, otherwise nil.
-    private func frontmostGameName() -> String? {
-        guard let app = NSWorkspace.shared.frontmostApplication,
-              let url = app.bundleURL,
-              let bundle = Bundle(url: url),
-              let category = bundle.object(forInfoDictionaryKey: "LSApplicationCategoryType") as? String,
-              isGameCategory(category) else { return nil }
-        return app.localizedName ?? "Game"
-    }
-
     /// True for `public.app-category.games` and every `*-games` subcategory
     /// (action-games, arcade-games, role-playing-games, …).
-    private func isGameCategory(_ category: String) -> Bool {
+    static func isGameCategory(_ category: String) -> Bool {
         category == "public.app-category.games" || category.hasSuffix("-games")
     }
 
