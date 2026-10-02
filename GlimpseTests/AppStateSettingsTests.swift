@@ -173,4 +173,58 @@ struct AppStateSettingsTests {
 
         resetDefaults()
     }
+
+    // MARK: - Menu bar label
+    // Lives here because this suite owns the showMenuBarTimer key.
+
+    @Test func menuBarLabelShowsMinutesWhileWorking() {
+        resetDefaults()
+        let state = AppState()
+        state.secondsRemaining = 1200
+        #expect(state.menuBarLabel == " 20m")
+        state.secondsRemaining = 60
+        #expect(state.menuBarLabel == " 1m")
+        resetDefaults()
+    }
+
+    @Test func menuBarLabelSwitchesToSecondsUnderAMinute() {
+        resetDefaults()
+        let state = AppState()
+        state.secondsRemaining = 59
+        #expect(state.menuBarLabel == " 59s")
+        state.secondsRemaining = 0
+        #expect(state.menuBarLabel == " 0s")
+        resetDefaults()
+    }
+
+    @Test func menuBarLabelShowsSecondsOnBreak() {
+        resetDefaults()
+        let state = AppState()
+        state.startBreak()
+        #expect(state.menuBarLabel == " \(Int(state.breakDuration))s")
+        resetDefaults()
+    }
+
+    @Test func menuBarLabelIsEmptyWhenPaused() {
+        resetDefaults()
+        let state = AppState()
+        state.pause()
+        #expect(state.menuBarLabel == "")
+        resetDefaults()
+    }
+
+    @Test func menuBarLabelIsEmptyWhenTimerHidden() {
+        resetDefaults()
+        let state = AppState()
+        state.showMenuBarTimer = false
+        #expect(state.menuBarLabel == "")
+        resetDefaults()
+    }
+
+    @Test func menuBarLabelStartsWithSpaceToSeparateFromIcon() {
+        resetDefaults()
+        let state = AppState()
+        #expect(state.menuBarLabel.hasPrefix(" "))
+        resetDefaults()
+    }
 }
