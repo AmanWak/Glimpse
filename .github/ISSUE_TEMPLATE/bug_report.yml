@@ -1,0 +1,52 @@
+name: Bug report
+description: Something isn't working the way it should
+labels: [bug]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Set break style to …
+        2. Wait for a break while …
+        3. …
+    validations:
+      required: true
+  - type: dropdown
+    id: break-style
+    attributes:
+      label: Break style
+      options:
+        - Full-screen overlay
+        - Floating banner
+        - Notch pill
+        - Notification only
+        - Not related to a break style
+    validations:
+      required: true
+  - type: input
+    id: glimpse-version
+    attributes:
+      label: Glimpse version
+      description: From the About tab in Settings, or "main @ <commit>" if built from source.
+    validations:
+      required: true
+  - type: input
+    id: macos-version
+    attributes:
+      label: macOS version and Mac model
+      placeholder: macOS 26.1, MacBook Pro 14" (M3)
+    validations:
+      required: true
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else?
+      description: Screenshots, screen recordings, external displays, apps that were open, etc.
