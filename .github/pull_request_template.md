@@ -9,4 +9,4 @@
 
 ## Screenshots / recordings
 
-<!-- For anything visual — especially overlay, banner, or notch changes. -->
+<!-- For anything visual, especially overlay, banner, or notch changes. -->
