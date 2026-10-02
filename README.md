@@ -5,96 +5,65 @@
 <h1 align="center">Glimpse</h1>
 
 <p align="center">
-  A native macOS menu bar app for eye breaks and the 20-20-20 rule.<br>
+  A small macOS menu bar app that reminds you to rest your eyes.<br>
   Every 20 minutes, look at something 20 feet away for 20 seconds.
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/platform-macOS%2026.1%2B-blue" alt="macOS 26.1+">
-  <img src="https://img.shields.io/badge/swift-5.9%2B-orange" alt="Swift 5.9+">
-  <img src="https://img.shields.io/badge/price-free-brightgreen" alt="Free">
-  <img src="https://img.shields.io/badge/dependencies-zero-lightgrey" alt="Zero dependencies">
+  <a href="https://github.com/AmanWak/Glimpse/releases/latest"><img src="https://img.shields.io/github/v/release/AmanWak/Glimpse?label=release" alt="Latest release"></a>
+  <a href="https://github.com/AmanWak/Glimpse/actions/workflows/ci.yml"><img src="https://github.com/AmanWak/Glimpse/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <img src="https://img.shields.io/badge/macOS-26.1%2B-blue" alt="macOS 26.1+">
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/AmanWak/Glimpse" alt="MIT License"></a>
 </p>
 
----
-
-## Current Status
-
-Glimpse is a personal, self-published macOS app. The current local project is version `1.2` and is configured with a `macOS 26.1` deployment target in Xcode. Earlier macOS support may be possible, but it is not what the project currently declares.
-
-The app is not distributed through the Mac App Store and is not currently presented here as a notarized commercial release. If you download or build it yourself, macOS may require the usual self-published app approval flow.
-
-## Why I Built This
-
-I was getting dry eyes from staring at a screen all day while working on computer science projects. Glimpse is my attempt at a lightweight, native Mac utility that makes eye breaks harder to ignore without adding accounts, subscriptions, analytics, or a heavy productivity workflow.
-
-## Screenshots
-
-| Menu Bar Popover | Full-Screen Overlay | Settings |
+| Menu bar | Full-screen break | Settings |
 |:---:|:---:|:---:|
 | ![Menu bar popover](assets/screenshots/popover.png) | ![Break overlay](assets/screenshots/overlay.png) | ![Settings window](assets/screenshots/settings.png) |
 
-> Note: screenshots may lag the current local build. The app currently includes additional settings for app-aware pause, notes, timing, sound, and menu-bar countdown behavior.
+## Why I built this
 
-## Features
+<!-- Rewrite this section in your own words before merging. A few honest sentences
+     about why you made it beat anything polished. -->
 
-### Break Reminders
-- **Full-screen overlay** with blur, configurable color, configurable opacity, countdown, skip button, and Esc-to-skip behavior
-- **Floating banner mode** for a lighter interruption that follows the cursor during breaks
-- **Notch mode** — a Live-Activity-style pill at the MacBook notch (top-center on Macs without a notch) that shows the break countdown
-- **Notification-only mode** for users who prefer system notifications
-- **Heads-up notification** 30 seconds before a break, if enabled
-- **Hold break while typing** — a due break waits (up to a minute) for a short pause in your typing instead of interrupting mid-keystroke
-- **Skip confirmation** after repeated skips, if enabled
+I was getting dry eyes from staring at a screen all day while working on computer
+science projects.
 
-### Menu Bar Workflow
-- Menu-bar-only app with no Dock icon
-- Optional live countdown in the menu bar
-- Pause/resume from the popover
-- Snooze for 1-4 hours
-- Start a break early
-- Quit directly from the popover
+## What it does
 
-### Tracking And Habit Support
-- Completed-break count for the current day
-- 7-day break history at a glance in the menu bar popover
-- Consecutive-skip counter
-- Curated break messages across eye care, posture, breathing, movement, and rare/fun variants
-- Optional notes shown during overlay breaks, with editable user notes
+Glimpse sits in the menu bar and counts down your work interval. When it's time for a
+break, it shows one in the style you picked:
 
-### Settings
-- Work interval presets from 5-60 minutes
-- Break duration presets from 10-120 seconds
-- Break style: full-screen overlay, floating banner, notch pill, or notification only
-- 32 curated overlay colors
-- Overlay opacity from 50%-100%
-- Launch at login
-- Heads-up notifications
-- Sound on break completion
-- Menu-bar countdown visibility
-- Auto-pause for watched apps — one unified list covering meeting apps (Zoom, Teams, Webex, Slack, FaceTime, Discord), game launchers (Steam, Epic Games, Battle.net, GOG Galaxy, Itch.io, Xbox), and any running app you add
-- Auto-pause during games — breaks hold off automatically while a game is the active app, no setup needed
-- Game-controller pause that suspends breaks while a controller is connected
-- Hold break while typing (on by default)
+- a pill that drops out of the MacBook notch (top center on Macs without one)
+- a full-screen blur with a countdown
+- a small banner that follows your cursor
+- a plain notification
 
-## Known Limitations
+It tries not to interrupt at a bad moment. If you're typing, the break waits for a pause
+(up to a minute). It also holds off while a game is in front, while a game controller is
+connected, or while an app on your watch list is open, like Zoom or Steam. After a long
+sleep it resets the timer instead of firing a stale break.
 
-- Browser-based meetings such as Google Meet are not auto-detected by the current app-aware pause implementation.
-- The project target currently says macOS 26.1, even though some APIs used by the app are available on earlier macOS versions.
-- There is no analytics dashboard, iCloud sync, account system, or App Store distribution.
-- `Refocus` (a post-break intention prompt) is only a planned future concept; it is not implemented.
+Other things you can set: work interval (5 to 60 minutes), break length (10 to 120
+seconds), overlay color and opacity, a heads-up notification 30 seconds before a break,
+your own notes to show during breaks, a menu bar countdown, launch at login, and a sound
+when the break ends. You can snooze for 1 to 4 hours from the menu bar, and the popover
+shows how many breaks you finished today and over the last 7 days.
 
-## Installation
+## Install
 
-### Download
+Download the latest build from the [Releases page](https://github.com/AmanWak/Glimpse/releases/latest),
+unzip it, and move Glimpse.app to Applications.
 
-Grab the latest build from the [Releases page](https://github.com/AmanWak/Glimpse/releases).
+Glimpse isn't notarized yet, so macOS will block it the first time. Open it once, then go
+to System Settings > Privacy & Security, scroll down, and click Open Anyway.
 
-> **Note:** Glimpse is self-published, so the first time you open it you may need to **right-click → Open** to get past the macOS "unidentified developer" prompt.
+The current release (v1.2) is older than notch mode, waiting while you type, game and
+app pausing, snooze, and the 7-day history. Those are on `main` and will be in the next
+release. To try them now, build from source.
 
-### Build From Source
+## Build from source
 
-Requires Xcode with support for the project's current macOS deployment target.
+You need Xcode 26 or later.
 
 ```bash
 git clone https://github.com/AmanWak/Glimpse.git
@@ -102,34 +71,36 @@ cd Glimpse
 open Glimpse.xcodeproj
 ```
 
-Build with Cmd+B and run with Cmd+R.
-
-Or from the command line:
+Then build and run with ⌘R. From the command line:
 
 ```bash
 xcodebuild build -scheme Glimpse -destination 'platform=macOS'
 ```
 
-## How It Works
+## Privacy
 
-1. Glimpse starts a work timer using the selected work interval.
-2. At 30 seconds remaining, it can send a heads-up notification.
-3. When the timer reaches zero, it starts a break using the selected break style.
-4. Completing the break increments today's completed-break count.
-5. Skipping the break increments the consecutive-skip count instead.
-6. The next work cycle starts automatically.
+Glimpse doesn't make network requests or collect anything. Settings and break history
+stay in `UserDefaults` on your Mac. To tell whether you're typing, it asks macOS how long
+it's been since the last keypress (`CGEventSource`). It never sees which keys you press,
+so it doesn't need Accessibility or Input Monitoring permission.
 
-## Tech Stack
+## Known limitations
 
-| | |
-|---|---|
-| **Language** | Swift 5.9+ |
-| **UI** | SwiftUI + AppKit |
-| **Frameworks** | SwiftUI, AppKit, UserNotifications, ServiceManagement |
-| **Architecture** | Observable app state with callback-driven managers |
-| **Testing** | Swift Testing framework |
-| **Dependencies** | None |
+- Meetings in a browser, like Google Meet, aren't detected yet.
+- It requires macOS 26.1, though most of what it uses exists on older versions.
+- No sync, no accounts, no App Store version.
+
+## How it's built
+
+Swift, SwiftUI, and AppKit, with no third-party dependencies. The break windows are
+AppKit windows hosting SwiftUI views. There are 127 unit tests using Swift Testing, and
+CI builds and tests every push.
+
+## Contributing
+
+Bug reports and ideas are welcome. Please [open an issue](https://github.com/AmanWak/Glimpse/issues/new/choose),
+and read [CONTRIBUTING.md](CONTRIBUTING.md) before sending a pull request.
 
 ## License
 
-MIT
+[MIT](LICENSE)

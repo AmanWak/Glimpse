@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Xcode version
+        run: xcodebuild -version
+
+      - name: Build
+        run: >
+          xcodebuild build
+          -scheme Glimpse
+          -destination 'platform=macOS'
+          CODE_SIGNING_ALLOWED=NO
+
+      - name: Unit tests
+        run: >
+          xcodebuild test
+          -scheme Glimpse
+          -destination 'platform=macOS'
+          -only-testing:GlimpseTests
+          CODE_SIGN_IDENTITY=-
+          CODE_SIGNING_REQUIRED=NO
