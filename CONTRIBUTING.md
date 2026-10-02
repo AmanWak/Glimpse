@@ -23,7 +23,7 @@ Or from the command line:
 
 ```bash
 xcodebuild build -scheme Glimpse -destination 'platform=macOS'
-xcodebuild test  -scheme Glimpse -destination 'platform=macOS'
+scripts/test.sh     # runs the tests without losing your own Glimpse settings
 ```
 
 ## How the code is organized
@@ -67,8 +67,10 @@ Unit tests use **Swift Testing** (`import Testing`, `@Test`, `#expect`), not XCT
 - Each test builds its own instances. No shared setup.
 - Models and pure-logic managers are tested; views and window-bound managers aren't.
 
-Tests run hosted inside the app, against real `UserDefaults`. If a test touches
-settings, save and restore only the keys it owns.
+Tests run hosted inside the app, against real `UserDefaults`, so a plain
+`xcodebuild test` resets your own Glimpse settings. Use `scripts/test.sh`, which backs
+them up and restores them afterwards. If a test touches settings, put it in the suite
+that owns those keys; suites run in parallel on the same `UserDefaults`.
 
 ## Pull requests
 

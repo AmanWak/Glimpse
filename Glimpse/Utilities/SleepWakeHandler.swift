@@ -23,6 +23,12 @@ final class SleepWakeHandler {
         setupObservers()
     }
 
+    /// Whether a sleep was long enough that the work timer should start fresh on wake,
+    /// instead of resuming (and possibly firing a stale break straight away).
+    static func shouldResetTimer(afterSleepOf duration: TimeInterval) -> Bool {
+        duration >= Constants.sleepResetThreshold
+    }
+
     private func setupObservers() {
         let center = NSWorkspace.shared.notificationCenter
 

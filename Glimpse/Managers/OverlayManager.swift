@@ -15,6 +15,7 @@
 //
 
 import AppKit
+import QuartzCore
 import SwiftUI
 
 /// NSWindow subclass that can become key to receive keyboard events (ESC).
@@ -84,9 +85,17 @@ final class OverlayManager {
             }
         }
 
-        // Fade in all overlay windows
+        // Fade in all overlay windows.
+        //
+        // The timing function matters more than the duration here. AppKit's default
+        // curve is front-loaded — it reaches half opacity in ~0.33s and then spends
+        // the remaining second creeping from 0.85 to 1.0, which the eye cannot see.
+        // The result reads as a snap, not a fade. easeIn inverts that: the screen
+        // stays legible for the first beat and only then commits, so the same 1.2s
+        // takes ~0.81s to reach half coverage.
         NSAnimationContext.runAnimationGroup { context in
-            context.duration = 1.2
+            context.duration = Constants.overlayFadeInDuration
+            context.timingFunction = CAMediaTimingFunction(name: .easeIn)
             for window in overlayWindows {
                 window.animator().alphaValue = 1.0
             }

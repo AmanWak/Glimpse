@@ -12,6 +12,7 @@ import SwiftUI
 /// label style. Observes AppState directly so updates are reactive.
 private struct MenuBarLabel: View {
     let appState: AppState
+    @Environment(\.openSettings) private var openSettings
 
     var body: some View {
         HStack(spacing: 3) {
@@ -23,11 +24,34 @@ private struct MenuBarLabel: View {
                     .monospacedDigit()
             }
         }
+        // Donate the environment's openSettings action so AppDelegate can reach it.
+        // The MenuBarExtra *label* is the right donor: it lives for the whole app
+        // lifetime, whereas the popover content only exists while the popover is open.
+        .onAppear {
+            SettingsWindow.openAction = { openSettings() }
+            DebugLog.log("MenuBarLabel: donated openSettings to SettingsWindow")
+        }
+    }
+}
+
+/// Makes Glimpse reachable when its menu bar item is not.
+///
+/// With `LSUIElement` there is no Dock icon and no Cmd+Tab entry, so a menu bar item hidden
+/// behind other menu bar apps would leave the app with no way in at all — including no way
+/// to un-pause or quit. Launching Glimpse again (Spotlight, Finder, Dock-drop) is what
+/// people instinctively try; macOS delivers that as a reopen event, so answer it by
+/// surfacing Settings.
+private final class AppDelegate: NSObject, NSApplicationDelegate {
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows: Bool) -> Bool {
+        DebugLog.log("AppDelegate: reopen — surfacing Settings (opener present: \(SettingsWindow.openAction != nil))")
+        SettingsWindow.show()
+        return true
     }
 }
 
 @main
 struct GlimpseApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @State private var appState = AppState()
     @State private var timerManager = TimerManager()
     @State private var overlayManager = OverlayManager()
@@ -172,7 +196,7 @@ struct GlimpseApp: App {
             if wasRunningBeforeSleep {
                 wasRunningBeforeSleep = false
 
-                if sleepDuration >= Constants.sleepResetThreshold {
+                if SleepWakeHandler.shouldResetTimer(afterSleepOf: sleepDuration) {
                     // Long sleep — reset the work timer fresh
                     DebugLog.log("GlimpseApp: sleep exceeded threshold, resetting work timer")
                     hideAllVisuals()
@@ -250,8 +274,10 @@ struct GlimpseApp: App {
     /// is on — hold it until a short pause in typing (capped at maxBreakHold).
     private func startBreakWhenTypingPauses() {
         guard appState.mode == .working else { return }
-        guard appState.holdBreakWhileTyping,
-              InputActivity.secondsSinceLastKeyPress() < Constants.typingPauseThreshold else {
+        guard InputActivity.shouldHoldBreak(
+            holdEnabled: appState.holdBreakWhileTyping,
+            secondsSinceKeyPress: InputActivity.secondsSinceLastKeyPress()
+        ) else {
             startBreak()
             return
         }
@@ -266,8 +292,11 @@ struct GlimpseApp: App {
     private func pollForTypingPause(deadline: Date) {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [self] in
             guard appState.mode == .working, appState.isAwaitingBreak else { return }
-            if Date() >= deadline
-                || InputActivity.secondsSinceLastKeyPress() >= Constants.typingPauseThreshold {
+            if InputActivity.shouldEndHold(
+                now: Date(),
+                deadline: deadline,
+                secondsSinceKeyPress: InputActivity.secondsSinceLastKeyPress()
+            ) {
                 startBreak()
             } else {
                 pollForTypingPause(deadline: deadline)
